@@ -42,7 +42,7 @@ class Pulse:
 				logging_exporter=log_exporter
 				)
             
-	def init_log_provider():
+	def init_log_provider(self):
 		"""
 		Initializes the log provider and sets up the logging configuration.
 		"""
@@ -65,7 +65,7 @@ class Pulse:
 		logger.addHandler(handler)
 		return log_exporter
             
-	def pulse_add_session_id(session_id=None, **kwargs):
+	def pulse_add_session_id(self, session_id=None, **kwargs):
 		"""
 		Decorator to set Traceloop association properties for a function.
 		
@@ -88,7 +88,7 @@ class Pulse:
 		return decorator
 
       
-	def add_traceid_header(func: Callable) -> Callable:
+	def add_traceid_header(self, func: Callable) -> Callable:
 		@wraps(func)
 		async def wrapper(request: Request, *args, **kwargs) -> Response:
 			# Generate unique trace ID
