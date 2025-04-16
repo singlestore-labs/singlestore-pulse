@@ -19,7 +19,7 @@ def get_configs():
         "SINGLESTOREDB_APP_BASE_PATH": "/functions/b933504d-63bd-4700-8f19-4dd3d7bef123/",
         "SINGLESTOREDB_APP_BASE_URL": "https://apps.aws-virginia-nb2.svc.singlestore.com:8000/functions/b933504d-63bd-4700-8f19-4dd3d7bef123/",
     }
-    return env_variables
+    return {key: os.getenv(key, default) for key, default in env_variables.items()}
 
 def form_otel_collector_endpoint(
     project_id: str = None,

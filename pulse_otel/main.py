@@ -155,8 +155,8 @@ class FileLogExporter(LogExporter):
                     f"Timestamp: {log_record.timestamp}, "
                     f"Severity: {log_record.severity_text}, "
                     f"Message: {log_record.body}, "
-                    f"Span ID : {format(log_record.span_id, "016x")}, "
-                    f"Trace ID : {format(log_record.trace_id, "016x")}"
+					f"Span ID : {format(log_record.span_id, '016x')}, "
+					f"Trace ID : {format(log_record.trace_id, '016x')}"
                 )
                 f.write(formatted_log + "\n")
         return LogExportResult.SUCCESS
