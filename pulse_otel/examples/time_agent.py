@@ -52,32 +52,6 @@ tools = [
 	}
 ]
 
-def with_traceloop_association(user_id=None, chat_id=None, **kwargs):
-    """
-    Decorator to set Traceloop association properties for a function.
-    
-    Parameters:
-    - user_id: Optional user identifier
-    - chat_id: Optional chat identifier
-    - **kwargs: Any additional association properties
-    """
-    def decorator(func):
-        def wrapper(*args, **kwargs_inner):
-
-            properties = {}
-            if user_id:
-                properties["user_id"] = user_id
-            if chat_id:
-                properties["chat_id"] = chat_id
-            properties.update(kwargs)  
-            
-            # Set the association properties
-            Traceloop.set_association_properties(properties)
-            
-            return func(*args, **kwargs_inner)
-        return wrapper
-    return decorator
-
 
 # Define a simple tool: a function to get the current time
 @tool("toolB")
@@ -99,7 +73,6 @@ def get_current_date():
 
 # Simple agent function to process user input and decide on tool use
 @agent("Myagent")
-@with_traceloop_association(user_id="user12345", chat_id="chat12345")
 def agent_run(prompt):
     messages = [{"role": "user", "content": prompt}]
     
