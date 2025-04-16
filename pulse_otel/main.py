@@ -9,6 +9,9 @@ from opentelemetry import _events, _logs, trace
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+    OTLPSpanExporter,
+)
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
@@ -27,11 +30,16 @@ class Pulse:
 		if not write_to_file:
 			# Initialize Traceloop with default settings
 			otel_collector_endpoint = form_otel_collector_endpoint(self.config["SINGLESTOREDB_PROJECT"])
+			# Traceloop.init(
+			# 	disable_batch=True, 
+			# 	api_endpoint=otel_collector_endpoint,
+			# 	resource_attributes=self.config
+			# )
 			Traceloop.init(
 				disable_batch=True, 
 				api_endpoint=otel_collector_endpoint,
-				resource_attributes=self.config
-			)
+				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True), 
+				)
 		else:
 			log_exporter = self.init_log_provider()
 			Traceloop.init(

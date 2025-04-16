@@ -1,3 +1,1 @@
-OTEL_COLLECTOR_ENDPOINT = "otel-{PROJECTID_PLACEHOLDER}.observability.svc.cluster.local:4317"
-
-
+OTEL_COLLECTOR_ENDPOINT = "http://otel-collector-{PROJECTID_PLACEHOLDER}.observability.svc.cluster.local:4317"
