@@ -12,7 +12,9 @@ from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
     OTLPSpanExporter,
 )
-
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
+    OTLPLogExporter,
+)
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
@@ -34,12 +36,22 @@ class Pulse:
 			# 	disable_batch=True, 
 			# 	api_endpoint=otel_collector_endpoint,
 			# 	resource_attributes=self.config
-			# )
+			#
+			log_provider = LoggerProvider()
+			_logs.set_logger_provider(log_provider)
+			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+
+			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
+			# Use the handler with Python’s standard logging
+			# logger = get_logger(__name__, "myapp")
+			logging.basicConfig(level=logging.INFO, handlers=[handler])
+
 			Traceloop.init(
 				disable_batch=True, 
 				api_endpoint=otel_collector_endpoint,
-				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True), 
-				)
+				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
+			)
 		else:
 			log_exporter = self.init_log_provider()
 			Traceloop.init(
@@ -172,4 +184,3 @@ class FileLogExporter(LogExporter):
     def shutdown(self):
         # No specific shutdown logic needed for file-based exporting
         pass
-
