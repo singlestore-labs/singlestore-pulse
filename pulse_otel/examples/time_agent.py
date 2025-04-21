@@ -4,11 +4,11 @@ import datetime
 
 from openai import OpenAI
 
-from traceloop.sdk import Traceloop
-from traceloop.sdk.decorators import agent, tool
 from opentelemetry.sdk._logs import LoggingHandler
 
-from pulse_otel import Pulse
+from pulse_otel import Pulse, pulse_tool, pulse_agent
+# Define a custom logging handler
+from opentelemetry.sdk._logs import LoggingHandler
 
 import logging
 
@@ -54,7 +54,7 @@ tools = [
 
 
 # Define a simple tool: a function to get the current time
-@tool("toolB")
+
 def get_current_time():
     print("**************")
     print("Fetching the current time...")
@@ -66,13 +66,13 @@ def get_current_time():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
 # Define a new tool: a function to get the current date
-@tool("toolA")
+@pulse_tool("toolA")
 def get_current_date():
     return datetime.datetime.now().strftime("%Y-%m-%d")
 
 
 # Simple agent function to process user input and decide on tool use
-@agent("Myagent")
+@pulse_agent("Myagent")
 def agent_run(prompt):
     messages = [{"role": "user", "content": prompt}]
     
@@ -101,7 +101,7 @@ def agent_run(prompt):
         return response.choices[0].message.content
 
 #Define a simple tool: a function to get the current time with a funny argument
-@tool("FFFF")
+@pulse_tool("FFFF")
 def get_funny_current_time(funny_phrase):
     current_time = datetime.datetime.now().strftime("%H:%M:%S")
     return f"{funny_phrase}! The time is {current_time}"

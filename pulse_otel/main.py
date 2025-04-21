@@ -1,9 +1,11 @@
 
 
+import functools
 import os
 
 from traceloop.sdk import Traceloop
-# from traceloop.sdk.decorators import agent, tool
+from traceloop.sdk.decorators import agent, tool
+
 from opentelemetry import _events, _logs, trace
 
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
@@ -150,7 +152,20 @@ class Pulse:
 				raise
 				
 		return wrapper
+	
 
+
+def pulse_tool(func):
+	@functools.wraps(func)
+	def wrapped(*args, **kwargs):
+		return tool(func)(*args, **kwargs)
+	return wrapped
+
+def pulse_agent(func):
+	@functools.wraps(func)
+	def wrapped(*args, **kwargs):
+		return agent(func)(*args, **kwargs)
+	return wrapped
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
