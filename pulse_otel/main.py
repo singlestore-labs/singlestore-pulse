@@ -3,7 +3,6 @@ import os
 
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-
 from opentelemetry import _events, _logs, trace
 
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
@@ -24,40 +23,57 @@ import logging
 from typing import Callable, Any
 
 from pulse_otel.util import get_configs, form_otel_collector_endpoint
+from pulse_otel.consts import (
+	LOCAL_TRACES_FILE,
+	LOCAL_LOGS_FILE
+)
 import logging
 
 class Pulse:
 	def __init__(self, write_to_file: bool = False):
+		"""
+		Initializes the main class with configuration for logging and tracing.
+
+		Args:
+			write_to_file (bool): Determines whether to write logs and traces to a file.
+								  If False, logs and traces are sent to an OpenTelemetry collector.
+								  Defaults to False.
+
+		Behavior:
+			- If `write_to_file` is False:
+				- Configures an OpenTelemetry collector endpoint based on the project configuration.
+				- Sets up a logger provider and an OTLP log exporter for sending logs.
+				- Configures a logging handler with the specified logger provider.
+				- Initializes Traceloop with the OTLP span exporter and resource attributes.
+			- If `write_to_file` is True:
+				- Initializes a custom log provider for file-based logging.
+				- Initializes Traceloop with a custom file span exporter and resource attributes.
+		"""
 		self.config = get_configs()
 		if not write_to_file:
-			# Initialize Traceloop with default settings
+
 			otel_collector_endpoint = form_otel_collector_endpoint(self.config["SINGLESTOREDB_PROJECT"])
-			# Traceloop.init(
-			# 	disable_batch=True, 
-			# 	api_endpoint=otel_collector_endpoint,
-			# 	resource_attributes=self.config
-			#
+
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
 			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
-			# Use the handler with Python’s standard logging
-			# logger = get_logger(__name__, "myapp")
+
 			logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 			Traceloop.init(
 				disable_batch=True, 
 				api_endpoint=otel_collector_endpoint,
+				resource_attributes=self.config,
 				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
 			)
 		else:
 			log_exporter = self.init_log_provider()
 			Traceloop.init(
 				disable_batch=True, 
-				#api_endpoint="https://localhost:4318"
-				exporter=CustomFileSpanExporter("traceloop_traces.json"),
+				exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
 				resource_attributes=self.config,
 				logging_exporter=log_exporter
 				)
@@ -68,7 +84,7 @@ class Pulse:
 		"""
 		# Create the log provider and processor
 		log_provider = LoggerProvider()
-		log_exporter = FileLogExporter("traceloop_logs.txt")
+		log_exporter = FileLogExporter(LOCAL_LOGS_FILE)
 		log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 	
 		# Set the log provider
@@ -117,11 +133,6 @@ class Pulse:
 			# Extract session ID from request headers if present
 			session_id = request.headers.get("X-SINGLESTORE-AI-SESSION-ID", "N/A")
 			
-			# Log the API call with trace ID and session ID
-			# logger.info(
-			# 	f"API call started - TraceID: {trace_id}, SessionID: {session_id}, Endpoint: {request.url.path}"
-			# )
-			
 			try:
 				# Execute the original function
 				result = await func(request, *args, **kwargs)
@@ -129,25 +140,15 @@ class Pulse:
 				# If result is already a Response object
 				if isinstance(result, Response):
 					result.headers["X-SINGLESTORE-TRACE-ID"] = trace_id
-					# logger.info(
-					# 	f"API call completed - TraceID: {trace_id}, SessionID: {session_id}"
-					# )
 					return result
-				
-				# For dictionary results, return JSONResponse with trace ID header
-				# logger.info(
-				# 	f"API call completed - TraceID: {trace_id}, SessionID: {session_id}"
-				# )
+			
 				return JSONResponse(
 					content=result,
 					headers={"X-SINGLESTORE-TRACE-ID": trace_id}
 				)
 				
 			except Exception as e:
-				# logger.error(
-				# 	f"API call failed - TraceID: {trace_id}, SessionID: {session_id}, Error: {str(e)}"
-				# )
-				raise
+				raise e
 				
 		return wrapper
 	

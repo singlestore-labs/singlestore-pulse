@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import datetime
+import json
 
 from openai import OpenAI
 
@@ -47,17 +48,30 @@ tools = [
 			"description": "Get the current date in YYYY-MM-DD format",
 			"parameters": {}
 		}
-	}
+	},
+    {
+        "type": "function",
+        "function": {
+            "name": "get_funny_current_time",
+            "description": "Get the current time in HH:MM:SS format with a funny phrase",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "funny_phrase": {
+                        "type": "string",
+                        "description": "A humorous phrase to include with the time"
+                    }
+                },
+                "required": ["funny_phrase"]
+            }
+        }
+    }
 ]
 
 
 # Define a simple tool: a function to get the current time
 @pulse_tool("toolB")
 def get_current_time():
-    print("**************")
-    print("Fetching the current time...")
-    print("**************")
-    # Simulate some work
     logger.info("TEST LOGS")
     logger.debug("DEBUG LOGS")
     logger.critical("CRITICAL LOGS")
@@ -102,37 +116,18 @@ def agent_run(prompt):
     if response.choices[0].message.tool_calls:
         for tool_call in response.choices[0].message.tool_calls:
             if tool_call.function.name == "get_current_time":
-                time_result = get_current_time()
-                return f"Current time: {time_result}"
+                result = get_current_time()
+            elif tool_call.function.name == "get_current_date":
+                result = get_current_date()
+            elif tool_call.function.name == "get_funny_current_time":
+                arguments = json.loads(tool_call.function.arguments)
+                funny_phrase = arguments.get("funny_phrase", "Just kidding")
+                result = get_funny_current_time(funny_phrase)
+            
+            return result
+
     else:
         return response.choices[0].message.content
-
-#Define a simple tool: a function to get the current time with a funny argument
-@pulse_tool("FFFF")
-def get_funny_current_time(funny_phrase):
-    current_time = datetime.datetime.now().strftime("%H:%M:%S")
-    return f"{funny_phrase}! The time is {current_time}"
-
-# Define available tools with a parameter for the funny phrase
-specialTool = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_funny_current_time",
-            "description": "Get the current time in HH:MM:SS format with a funny phrase",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "funny_phrase": {
-                        "type": "string",
-                        "description": "A humorous phrase to include with the time"
-                    }
-                },
-                "required": ["funny_phrase"]
-            }
-        }
-    }
-]
 
 
 def main():
@@ -145,6 +140,16 @@ def main():
     user_prompt = "What time is it?"
     result = agent_run(user_prompt)
     print(result)
+
+    print("==========================")
+    user_prompt = "What date is it?"
+    result = agent_run(user_prompt)
+    print(result)
+    print("==========================")
+    user_prompt = "What time is it? Make it funny!"
+    result = agent_run(user_prompt)
+    print(result)
+    print("==========================")
 
 if __name__ == "__main__":
     main()
