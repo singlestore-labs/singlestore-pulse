@@ -6,9 +6,7 @@ from openai import OpenAI
 
 from opentelemetry.sdk._logs import LoggingHandler
 
-from pulse_otel import Pulse, pulse_tool, pulse_agent
-# Define a custom logging handler
-from opentelemetry.sdk._logs import LoggingHandler
+from pulse_otel import Pulse, pulse_agent, pulse_tool
 
 import logging
 
@@ -54,7 +52,7 @@ tools = [
 
 
 # Define a simple tool: a function to get the current time
-
+@pulse_tool("toolB")
 def get_current_time():
     print("**************")
     print("Fetching the current time...")
@@ -70,7 +68,16 @@ def get_current_time():
 def get_current_date():
     return datetime.datetime.now().strftime("%Y-%m-%d")
 
+# Define a new tool: a function to get the current time with a funny phrase
+@pulse_tool("toolC")
+def get_funny_current_time(funny_phrase):
+    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+    funny_timestamp =  f"{funny_phrase}! The time is {current_time}"
+    return get_funny_timestamp_phrase(funny_timestamp)
 
+def get_funny_timestamp_phrase(funny_timestamp):
+    return f"Here is a funny timestamp: {funny_timestamp}"
+    
 # Simple agent function to process user input and decide on tool use
 @pulse_agent("Myagent")
 def agent_run(prompt):

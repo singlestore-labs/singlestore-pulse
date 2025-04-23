@@ -1,5 +1,3 @@
-
-
 import functools
 import os
 
@@ -17,7 +15,7 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
 )
-from fastapi import FastAPI, Request, Response
+from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 from functools import wraps
@@ -153,6 +151,48 @@ class Pulse:
 				
 		return wrapper
 	
+
+def pulse_tool(func):
+	"""
+	A decorator that wraps a given function with a third-party `tool` decorator 
+	while preserving the original function's metadata.
+
+	Args:
+		func (Callable): The function to be wrapped.
+
+	Returns:
+		Callable: The wrapped function with preserved metadata.
+	"""
+	# Wrap the original function with the third-party decorator
+	decorated_func = tool(func)
+
+	# Preserve metadata and return
+	@functools.wraps(func)
+	def wrapper(*args, **kwargs):
+		return decorated_func(*args, **kwargs)
+
+	return wrapper
+
+def pulse_agent(func):
+	"""
+	A decorator that wraps a given function with a third-party decorator `agent`
+	while preserving the original function's metadata.
+
+	Args:
+		func (callable): The function to be wrapped.
+
+	Returns:
+		callable: The wrapped function with the `agent` decorator applied.
+	"""
+	# Wrap the original function with the third-party decorator
+	decorated_func = agent(func)
+
+	# Preserve metadata and return
+	@functools.wraps(func)
+	def wrapper(*args, **kwargs):
+		return decorated_func(*args, **kwargs)
+
+	return wrapper
 
 
 def pulse_tool(func):
