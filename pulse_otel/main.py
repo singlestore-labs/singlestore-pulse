@@ -25,7 +25,8 @@ from typing import Callable, Any
 from pulse_otel.util import get_configs, form_otel_collector_endpoint
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
-	LOCAL_LOGS_FILE
+	LOCAL_LOGS_FILE,
+	HEADER_SESSION_ID
 )
 import logging
 
@@ -203,8 +204,38 @@ def pulse_tool(func):
 	return wrapped
 
 def pulse_agent(func):
+	"""
+	A decorator that wraps a function to extract a `session_id` from the `headers` 
+	in the keyword arguments (if present) and associates it with Traceloop properties. 
+	If a `session_id` is found, it is set in the Traceloop association properties 
+	and logged. If no `session_id` is found, a message is logged indicating its absence.
+
+	The decorated function is then wrapped with the `agent` decorator.
+
+	Args:
+		func (Callable): The function to be decorated.
+
+	Returns:
+		Callable: The wrapped function with additional functionality for handling 
+		`session_id` and associating it with Traceloop properties.
+	"""
 	@functools.wraps(func)
 	def wrapped(*args, **kwargs):
+		session_id = None
+		if 'headers' in kwargs:
+			headers = kwargs['headers']
+			session_id = headers.get('session_id')
+
+		if session_id:
+			# Set the session_id in the Traceloop association properties
+			properties = {HEADER_SESSION_ID: session_id}
+			Traceloop.set_association_properties(properties)
+			print(f"[pulse_agent] session_id: {session_id}")
+		else:
+			properties = {HEADER_SESSION_ID: "session_id"}
+			Traceloop.set_association_properties(properties)
+			print("[pulse_agent] No session_id found in headers.")
+
 		return agent(func)(*args, **kwargs)
 	return wrapped
 
