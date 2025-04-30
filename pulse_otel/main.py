@@ -17,16 +17,17 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+import random
 from functools import wraps
 import uuid
 import logging
 from typing import Callable, Any
 
-from pulse_otel.util import get_configs, form_otel_collector_endpoint
+from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
-	HEADER_SESSION_ID,
+	SESSION_ID,
 	HEADER_INCOMING_SESSION_ID
 )
 import logging
@@ -51,11 +52,11 @@ class Pulse:
 				- Initializes a custom log provider for file-based logging.
 				- Initializes Traceloop with a custom file span exporter and resource attributes.
 		"""
-		self.config = get_configs()
+		self.config = get_environ_vars()
 		if not write_to_file:
 
-			otel_collector_endpoint = form_otel_collector_endpoint(self.config["SINGLESTOREDB_PROJECT"])
-
+			otel_collector_endpoint = form_otel_collector_endpoint(self.config["singlestoredb.project"])
+			
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
@@ -178,36 +179,6 @@ def pulse_tool(func):
 
 def pulse_agent(func):
 	"""
-	A decorator that wraps a given function with a third-party decorator `agent`
-	while preserving the original function's metadata.
-
-	Args:
-		func (callable): The function to be wrapped.
-
-	Returns:
-		callable: The wrapped function with the `agent` decorator applied.
-	"""
-	# Wrap the original function with the third-party decorator
-	decorated_func = agent(func)
-
-	# Preserve metadata and return
-	@functools.wraps(func)
-	def wrapper(*args, **kwargs):
-		return decorated_func(*args, **kwargs)
-
-	return wrapper
-
-
-def pulse_tool(func):
-	@functools.wraps(func)
-	def wrapped(*args, **kwargs):
-		return tool(func)(*args, **kwargs)
-	return wrapped
-
-import functools
-
-def pulse_agent(func):
-	"""
 	A decorator that wraps a function to extract a `singlestore-session-id` from the 
 	`baggage` header in the keyword arguments (if present) and associates it with 
 	Traceloop properties.
@@ -239,11 +210,12 @@ def pulse_agent(func):
 							break
 
 		if session_id:
-			properties = {HEADER_SESSION_ID: session_id}
+			properties = {SESSION_ID: session_id}
 			Traceloop.set_association_properties(properties)
 			print(f"[pulse_agent] singlestore-session-id: {session_id}")
 		else:
-			properties = {HEADER_SESSION_ID: "null"}
+			random_session_id = random.randint(10**15, 10**16 - 1)
+			properties = {SESSION_ID: str(random_session_id)}
 			Traceloop.set_association_properties(properties)
 			print("[pulse_agent] No singlestore-session-id found in baggage.")
 
