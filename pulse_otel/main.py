@@ -25,7 +25,9 @@ from typing import Callable, Any
 from pulse_otel.util import get_configs, form_otel_collector_endpoint
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
-	LOCAL_LOGS_FILE
+	LOCAL_LOGS_FILE,
+	HEADER_SESSION_ID,
+	HEADER_INCOMING_SESSION_ID
 )
 import logging
 
@@ -202,11 +204,53 @@ def pulse_tool(func):
 		return tool(func)(*args, **kwargs)
 	return wrapped
 
+import functools
+
 def pulse_agent(func):
+	"""
+	A decorator that wraps a function to extract a `singlestore-session-id` from the 
+	`baggage` header in the keyword arguments (if present) and associates it with 
+	Traceloop properties.
+
+	The decorated function is then wrapped with the `agent` decorator.
+
+	Args:
+		func (Callable): The function to be decorated.
+
+	Returns:
+		Callable: The wrapped function with additional functionality for handling 
+		`singlestore-session-id` and associating it with Traceloop properties.
+	"""
 	@functools.wraps(func)
 	def wrapped(*args, **kwargs):
+		session_id = None
+		if 'headers' in kwargs:
+			headers = kwargs['headers']
+			baggage = headers.get('baggage')
+			if baggage:
+				# baggage header is a comma-separated string of key=value pairs
+				# example: baggage: key1=value1;property1;property2, key2 = value2, key3=value3; propertyKey=propertyValue
+				parts = [item.strip() for item in baggage.split(',')]
+				for part in parts:
+					if '=' in part:
+						key, value = part.split('=', 1)
+						if key.strip() == HEADER_INCOMING_SESSION_ID:
+							session_id = value.strip()
+							break
+
+		if session_id:
+			properties = {HEADER_SESSION_ID: session_id}
+			Traceloop.set_association_properties(properties)
+			print(f"[pulse_agent] singlestore-session-id: {session_id}")
+		else:
+			properties = {HEADER_SESSION_ID: "null"}
+			Traceloop.set_association_properties(properties)
+			print("[pulse_agent] No singlestore-session-id found in baggage.")
+
 		return agent(func)(*args, **kwargs)
+
 	return wrapped
+
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
