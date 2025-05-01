@@ -1,43 +1,58 @@
 import os
-from pulse_otel.consts import OTEL_COLLECTOR_ENDPOINT
+from pulse_otel.consts import (
+    OTEL_COLLECTOR_ENDPOINT,
+    DEFAULT_ENV_VARIABLES,
+    ENV_VARIABLES_MAPPING
+)
 
 
-def get_configs():
+
+def get_environ_vars():
     """
     Reads specific environment variables and returns their values. If a variable is not set, returns its default value.
 
     Returns:
         dict: A dictionary containing the environment variables and their values.
 
-        example:
+    Example:
         {
-                "SINGLESTOREDB_ORGANIZATION": "6179a453-89bc-4341-8885-287ada1e5dd8",
-                "SINGLESTOREDB_PROJECT": "e003a14c-b9a6-4630-811c-0a13e04a568b",
-                "HTTP_NOTEBOOKSSERVERID": "693c3fb9-f0c9-460e-926f-e7202526dddc",
-                "HOSTNAME": "newdeploy-fn-693c3fb9-fission-nova-a3aa-8d63644fa018-0",
-                "HTTP_FISSIONFUNCTIONNAME": "fn-693c3fb9",
-                "SINGLESTOREDB_WORKLOAD_TYPE": "NotebookCodeService",
-                "SINGLESTOREDB_APP_BASE_PATH": "/functions/b933504d-63bd-4700-8f19-4dd3d7bef123/",
-                "SINGLESTOREDB_APP_BASE_URL": "https://apps.aws-virginia-nb2.svc.singlestore.com:8000/functions/b933504d-63bd-4700-8f19-4dd3d7bef123/",
-                "APP_TYPE": "AGENT",
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
+            "singlestore.nova.app.type": "AGENT",
+            "singlestore.nova.app.id": "123456789",
+            "singlestore.nova.app.name": "MY_APP_NAME",
+            "singlestore.is.agent": "true",
         }
 
     """
-    env_variables_default = {
-        "SINGLESTOREDB_ORGANIZATION": "",
-        "SINGLESTOREDB_PROJECT": "",
-        "HTTP_NOTEBOOKSSERVERID": "",
-        "HOSTNAME": "",
-        "HTTP_FISSIONFUNCTIONNAME": "",
-        "SINGLESTOREDB_WORKLOAD_TYPE": "NotebookCodeService",
-        "SINGLESTOREDB_APP_BASE_PATH": "",
-        "SINGLESTOREDB_APP_BASE_URL": "",
-        "APP_TYPE": "AGENT",
-        "SINGLESTOREDB_APP_ID": "",
-    }
-    env_variables =  {key: os.getenv(key, default) for key, default in env_variables_default.items()}
 
-    return env_variables
+    env_variables =  {key: os.getenv(key, default) for key, default in DEFAULT_ENV_VARIABLES.items()}
+
+    formatted_env_variables = format_env_variables(env_variables)
+    return formatted_env_variables
+
+def format_env_variables(env_variables):
+    
+    new_data = {}
+    for key, value in env_variables.items():
+        # Find if any of the match keys exist in the current key
+        new_key = key
+        for match, replacement in ENV_VARIABLES_MAPPING.items():
+            if match in key:
+                new_key = replacement
+                break
+        new_data[new_key] = value
+
+    def convert_key(key):
+            return key.lower().replace('_', '.')
+
+    converted_env_variables =  {convert_key(k): v for k, v in new_data.items()}
+    return converted_env_variables
 
 def form_otel_collector_endpoint(
     project_id: str = None,
@@ -58,17 +73,3 @@ def form_otel_collector_endpoint(
         
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
-
-def fetch_resource_attributes():
-    """
-    Fetches and returns resource attributes from the environment.
-    
-    Returns:
-    - A dictionary of resource attributes
-    """
-    resource_attributes = {
-        "env": os.getenv("env", "nova-prod"),
-        "agentName": os.getenv("agentName", "myagent"),
-        # Add more attributes as needed
-    }
-    return resource_attributes
