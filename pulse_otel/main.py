@@ -57,11 +57,13 @@ class Pulse:
 		"""
 		self.config = get_environ_vars()
 		if write_to_traceloop and api_key:
+			log_exporter = self.init_log_provider()
 
 			Traceloop.init(
 				disable_batch=True, 
 				resource_attributes=self.config,
 				api_key=api_key,
+				logging_exporter=log_exporter
 			)
 			
 		elif write_to_file:
