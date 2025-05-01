@@ -1,13 +1,6 @@
 import os
 from pulse_otel.consts import (
-    APP_ID, 
-    APP_NAME,
-    APP_TYPE,
     OTEL_COLLECTOR_ENDPOINT,
-    SESSION_ID,
-    HEADER_INCOMING_SESSION_ID,
-    LOCAL_TRACES_FILE,
-    LOCAL_LOGS_FILE,
     DEFAULT_ENV_VARIABLES,
     ENV_VARIABLES_MAPPING
 )

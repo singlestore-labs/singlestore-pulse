@@ -28,7 +28,8 @@ from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
 	SESSION_ID,
-	HEADER_INCOMING_SESSION_ID
+	HEADER_INCOMING_SESSION_ID,
+	PROJECT
 )
 import logging
 
@@ -55,7 +56,7 @@ class Pulse:
 		self.config = get_environ_vars()
 		if not write_to_file:
 
-			otel_collector_endpoint = form_otel_collector_endpoint(self.config["singlestoredb.project"])
+			otel_collector_endpoint = form_otel_collector_endpoint(self.config[str(PROJECT)])
 			
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
