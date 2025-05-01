@@ -15,21 +15,19 @@ def get_environ_vars():
         dict: A dictionary containing the environment variables and their values.
 
     Example:
-    {
-            "singlestoredb.organization": "",
-            "singlestoredb.project": "",
-            "http.notebooksserverid": "",
-            "hostname": "",
-            "http.fissionfunctionname": "",
-            "singlestoredb.workload.type": "NotebookCodeService",
-            "singlestoredb.app.base.path": "",
-            "singlestoredb.app.base.url": "",
+        {
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
             "singlestore.nova.app.type": "AGENT",
             "singlestore.nova.app.id": "123456789",
             "singlestore.nova.app.name": "MY_APP_NAME",
-            "singlestoredb.is.agent": "true",
-            "service.name": "pulse_otel/examples/time_agent.py"
-    }
+            "singlestore.is.agent": "true",
+        }
 
     """
 
