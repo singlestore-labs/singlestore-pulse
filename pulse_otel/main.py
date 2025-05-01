@@ -34,7 +34,7 @@ from pulse_otel.consts import (
 import logging
 
 class Pulse:
-	def __init__(self, write_to_file: bool = False):
+	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None):	
 		"""
 		Initializes the main class with configuration for logging and tracing.
 
@@ -42,6 +42,8 @@ class Pulse:
 			write_to_file (bool): Determines whether to write logs and traces to a file.
 								  If False, logs and traces are sent to an OpenTelemetry collector.
 								  Defaults to False.
+			write_to_traceloop (bool): Determines whether to send logs and traces to Traceloop.
+			api_key (str): The API key for Traceloop. Required if `write_to_traceloop` is True.
 
 		Behavior:
 			- If `write_to_file` is False:
@@ -54,7 +56,25 @@ class Pulse:
 				- Initializes Traceloop with a custom file span exporter and resource attributes.
 		"""
 		self.config = get_environ_vars()
-		if not write_to_file:
+		if write_to_traceloop and api_key:
+
+			Traceloop.init(
+				disable_batch=True, 
+				resource_attributes=self.config,
+				api_key=api_key,
+			)
+			
+		elif write_to_file:
+
+			log_exporter = self.init_log_provider()
+			Traceloop.init(
+				disable_batch=True, 
+				exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
+				resource_attributes=self.config,
+				logging_exporter=log_exporter
+				)
+			
+		else:
 
 			otel_collector_endpoint = form_otel_collector_endpoint(self.config[str(PROJECT)])
 			
@@ -73,14 +93,6 @@ class Pulse:
 				resource_attributes=self.config,
 				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
 			)
-		else:
-			log_exporter = self.init_log_provider()
-			Traceloop.init(
-				disable_batch=True, 
-				exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
-				resource_attributes=self.config,
-				logging_exporter=log_exporter
-				)
             
 	def init_log_provider(self):
 		"""
