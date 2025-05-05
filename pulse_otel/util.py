@@ -66,10 +66,9 @@ def form_otel_collector_endpoint(
     Returns:
         str: The formatted OpenTelemetry collector endpoint URL.
     """
-    if project_id is None:
-        project_id = os.getenv("SINGLESTOREDB_PROJECT", "")
-        if not project_id:
-            raise ValueError("Project ID is required but not found int env variables.")
-        
+    
+    if project_id is None or project_id == '':
+        raise ValueError("[Pulse] SINGLESTOREDB_PROJECT is required but not found int env variables.")
+
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
