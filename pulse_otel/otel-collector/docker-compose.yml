@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./tmp:/tmp  # Mount tmp directory for log files
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+    networks:
+      - otel-network
+    user: "0:0"  # Run as root to ensure write permissions
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "9411:9411"    # Zipkin compatible endpoint
+    networks:
+      - otel-network
+
+networks:
+  otel-network:
+    driver: bridge
+
+volumes:
+  otel-collector-logs:
+    # Using a named volume with proper permissions

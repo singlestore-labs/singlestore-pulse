@@ -1,0 +1,41 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+exporters:
+  debug: {}  # For debugging telemetry data in the console
+
+  # prometheus:
+  #   endpoint: "0.0.0.0:8888"
+
+  zipkin:  # Use Zipkin exporter to send traces to Jaeger
+    endpoint: "http://jaeger:9411/api/v2/spans"
+
+  file:
+    path: /tmp/otel_collector_logs.log  # This path should work with the new volume mount
+  file/secondary:
+      path: /tmp/otel_collector_traces.log  # This path should work with the new volume mount
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      exporters: [debug, file]  # File exporter should now work
+
+    # metrics:
+    #   receivers: [otlp]
+    #   exporters: [prometheus]
+
+    traces:
+      receivers: [otlp]
+      exporters: [zipkin, file/secondary]  # Zipkin exporter will send to Jaeger
+  telemetry:
+      logs:
+        level: debug
+
+# Docker Compose is now used to run the collector
+# See docker-compose.yml in the project root
