@@ -80,11 +80,18 @@ def get_current_time():
 # Define a new tool: a function to get the current date
 @pulse_tool("toolA")
 def get_current_date():
+    logger.critical("CRITICAL LOGS of get_current_date")
+    logger.debug("DEBUG LOGS of get_current_date")
+    logger.info("INFO LOGS of get_current_date")
     return datetime.datetime.now().strftime("%Y-%m-%d")
 
 # Define a new tool: a function to get the current time with a funny phrase
 @pulse_tool("toolC")
 def get_funny_current_time(funny_phrase):
+    logger.critical("CRITICAL LOGS of get_funny_current_time")
+    logger.debug("DEBUG LOGS of get_funny_current_time")
+    logger.info("INFO LOGS of get_funny_current_time")
+
     current_time = datetime.datetime.now().strftime("%H:%M:%S")
     funny_timestamp =  f"{funny_phrase}! The time is {current_time}"
     return get_funny_timestamp_phrase(funny_timestamp)
