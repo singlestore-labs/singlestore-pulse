@@ -34,7 +34,7 @@ from pulse_otel.consts import (
 import logging
 
 class Pulse:
-	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None):	
+	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None, otel_collector_endpoint: str = None):	
 		"""
 		Initializes the main class with configuration for logging and tracing.
 
@@ -44,6 +44,7 @@ class Pulse:
 								  Defaults to False.
 			write_to_traceloop (bool): Determines whether to send logs and traces to Traceloop.
 			api_key (str): The API key for Traceloop. Required if `write_to_traceloop` is True.
+			otel_collector_endpoint (str): The endpoint for the OpenTelemetry collector. Required if `write_to_file` is False.
 
 		Behavior:
 			- If `write_to_file` is False:
@@ -75,7 +76,24 @@ class Pulse:
 				resource_attributes=self.config,
 				logging_exporter=log_exporter
 				)
+		elif otel_collector_endpoint is not None:
+			# Use the provided OTLP collector endpoint
 			
+			log_provider = LoggerProvider()
+			_logs.set_logger_provider(log_provider)
+			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+
+			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
+
+			logging.basicConfig(level=logging.INFO, handlers=[handler])
+
+			Traceloop.init(
+				disable_batch=True, 
+				api_endpoint=otel_collector_endpoint,
+				resource_attributes=self.config,
+				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
+			)
 		else:
 
 			otel_collector_endpoint = form_otel_collector_endpoint(self.config[str(PROJECT)])
