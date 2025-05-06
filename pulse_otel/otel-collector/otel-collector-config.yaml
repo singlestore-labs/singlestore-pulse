@@ -13,18 +13,20 @@ exporters:
   #   endpoint: "0.0.0.0:8888"
 
   zipkin:  # Use Zipkin exporter to send traces to Jaeger
+    # endpoint: "http://jaeger:9411/api/v2/spans"
     endpoint: "http://jaeger:9411/api/v2/spans"
 
-  file:
-    path: /tmp/otel_collector_logs.log  # This path should work with the new volume mount
-  file/secondary:
-      path: /tmp/otel_collector_traces.log  # This path should work with the new volume mount
+
+  file/logs:
+    path: /tmp/otel_collector_logs.json  # This path should work with the new volume mount
+  file/traces:
+      path: /tmp/otel_collector_traces.json  # This path should work with the new volume mount
 
 service:
   pipelines:
     logs:
       receivers: [otlp]
-      exporters: [debug, file]  # File exporter should now work
+      exporters: [debug, file/logs]  # File exporter should now work
 
     # metrics:
     #   receivers: [otlp]
@@ -32,7 +34,7 @@ service:
 
     traces:
       receivers: [otlp]
-      exporters: [zipkin, file/secondary]  # Zipkin exporter will send to Jaeger
+      exporters: [file/traces]  # Zipkin exporter will send to Jaeger
   telemetry:
       logs:
         level: debug

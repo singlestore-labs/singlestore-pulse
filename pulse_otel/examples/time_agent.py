@@ -72,9 +72,9 @@ tools = [
 # Define a simple tool: a function to get the current time
 @pulse_tool("toolB")
 def get_current_time():
-    logger.info("TEST LOGS")
-    logger.debug("DEBUG LOGS")
-    logger.critical("CRITICAL LOGS")
+    logger.info("TEST LOGS toolB")
+    logger.debug("DEBUG LOGS toolB")
+    logger.critical("CRITICAL LOGS toolB")
     return datetime.datetime.now().strftime("%H:%M:%S")
 
 # Define a new tool: a function to get the current date
@@ -97,6 +97,9 @@ def get_funny_current_time(funny_phrase):
     return get_funny_timestamp_phrase(funny_timestamp)
 
 def get_funny_timestamp_phrase(funny_timestamp):
+    logger.info("TEST LOGS toolC")
+    logger.debug("DEBUG LOGS toolC")
+    logger.critical("CRITICAL LOGS toolC")
     return f"Here is a funny timestamp: {funny_timestamp}"
     
 # Simple agent function to process user input and decide on tool use
@@ -140,9 +143,15 @@ def agent_run(prompt):
 def main():
    
    #create a Pulse instance
+    # _ = Pulse(
+    #     write_to_file=True,
+    # )
+
+    # write to otel collector 
     _ = Pulse(
-        write_to_file=True,
+        otel_collector_endpoint="http://localhost:4317",
     )
+
 
     user_prompt = "What time is it?"
     result = agent_run(user_prompt)
