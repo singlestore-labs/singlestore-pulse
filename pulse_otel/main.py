@@ -6,7 +6,7 @@ from traceloop.sdk.decorators import agent, tool
 from opentelemetry import _events, _logs, trace
 
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
     OTLPSpanExporter,
@@ -122,6 +122,12 @@ class Pulse:
 		log_provider = LoggerProvider()
 		log_exporter = FileLogExporter(LOCAL_LOGS_FILE)
 		log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+
+		# create json log exporter
+		json_log_file_name = get_json_log_file_name()
+		if json_log_file_name != None or json_log_file_name != "":
+			json_log_exporter = JSONLFileLogExporter(json_log_file_name)
+			log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
 	
 		# Set the log provider
 		_logs.set_logger_provider(log_provider)
@@ -289,3 +295,34 @@ class FileLogExporter(LogExporter):
     def shutdown(self):
         # No specific shutdown logic needed for file-based exporting
         pass
+
+def get_json_log_file_name():
+	"""
+	Gets the filename for live logs from env vars
+	"""
+	return os.getenv("JSON_LOGS_FILE_NAME")
+
+class JSONLFileLogExporter(LogExporter):
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.f = open(self.file_path, 'a', encoding='utf-8')
+
+    def export(self, batch: typing.Sequence[LogData]) -> LogExportResult:
+        if self.f is None:
+            try:
+                self.f = open(self.file_path, 'a', encoding='utf-8')
+            except Exception as e:
+                logging.error(f"Failed to open file {self.file_path}: {e}")
+                return LogExportResult.FAILURE
+        try:
+            for r in batch:
+                self.f.write(r.log_record.to_json(None) + '\n')
+                self.f.flush()
+            return LogExportResult.SUCCESS
+        except Exception as e:
+            logging.error(f"Failed to export logs: {e}")
+            return LogExportResult.FAILURE
+
+    def shutdown(self):
+        if self.f:
+            self.f.close()
