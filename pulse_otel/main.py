@@ -5,7 +5,7 @@ from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
 from opentelemetry import _events, _logs, trace
 
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
@@ -22,6 +22,7 @@ from functools import wraps
 import uuid
 import logging
 from typing import Callable, Any
+import typing
 
 from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint
 from pulse_otel.consts import (
@@ -82,6 +83,12 @@ class Pulse:
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+
+			# create json log exporter
+			json_log_exporter = get_json_file_exporter()
+			if json_log_exporter is not None:
+				log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
+
 			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
@@ -101,6 +108,11 @@ class Pulse:
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+			# create json log exporter
+			json_log_exporter = get_json_file_exporter()
+			if json_log_exporter is not None:
+				log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
+
 			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
@@ -124,9 +136,8 @@ class Pulse:
 		log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 		# create json log exporter
-		json_log_file_name = get_json_log_file_name()
-		if json_log_file_name != None or json_log_file_name != "":
-			json_log_exporter = JSONLFileLogExporter(json_log_file_name)
+		json_log_exporter = get_json_file_exporter()
+		if json_log_exporter is not None:
 			log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
 	
 		# Set the log provider
@@ -296,33 +307,46 @@ class FileLogExporter(LogExporter):
         # No specific shutdown logic needed for file-based exporting
         pass
 
-def get_json_log_file_name():
+def get_json_log_file_path():
 	"""
 	Gets the filename for live logs from env vars
 	"""
 	return os.getenv("JSON_LOGS_FILE_NAME")
 
+def get_json_file_exporter():
+	"""
+	get json log exporter if env var exists
+	"""
+	json_log_file_path = get_json_log_file_path()
+	if json_log_file_path is not None and json_log_file_path != "" and os.path.exists(json_log_file_path):
+		print(f"Logging to file: {json_log_file_path}")
+		return JSONLFileLogExporter(json_log_file_path)
+	print("No JSON log file provided. Skipping JSON log export.")
+	return None
+	
+
 class JSONLFileLogExporter(LogExporter):
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.f = open(self.file_path, 'a', encoding='utf-8')
+	def __init__(self, file_path):
+		self.file_path = file_path
+		try:
+			self.f = open(self.file_path, 'a', encoding='utf-8')
+		except Exception as e:
+			print(f"Failed to open file {self.file_path}: {e}")
+			self.f = None
 
-    def export(self, batch: typing.Sequence[LogData]) -> LogExportResult:
-        if self.f is None:
-            try:
-                self.f = open(self.file_path, 'a', encoding='utf-8')
-            except Exception as e:
-                logging.error(f"Failed to open file {self.file_path}: {e}")
-                return LogExportResult.FAILURE
-        try:
-            for r in batch:
-                self.f.write(r.log_record.to_json(None) + '\n')
-                self.f.flush()
-            return LogExportResult.SUCCESS
-        except Exception as e:
-            logging.error(f"Failed to export logs: {e}")
-            return LogExportResult.FAILURE
+	def export(self, batch: typing.Sequence[LogData]) -> LogExportResult:
+		if self.f is None:
+			return LogExportResult.FAILURE
+		try:
+			for r in batch:
+				print(r)
+				self.f.write(r.log_record.to_json(None) + '\n')
+				self.f.flush()
+			return LogExportResult.SUCCESS
+		except Exception as e:
+			print(f"Failed to write to file {self.file_path}: {e}")
+			return LogExportResult.FAILURE
 
-    def shutdown(self):
-        if self.f:
-            self.f.close()
+	def shutdown(self):
+		if self.f:
+			self.f.close()
