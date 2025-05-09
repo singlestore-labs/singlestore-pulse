@@ -35,7 +35,7 @@ from pulse_otel.consts import (
 import logging
 
 class Pulse:
-	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None, otel_collector_endpoint: str = None):	
+	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None, otel_collector_endpoint: str = None):
 		"""
 		Initializes the main class with configuration for logging and tracing.
 
@@ -62,24 +62,24 @@ class Pulse:
 			log_exporter = self.init_log_provider()
 
 			Traceloop.init(
-				disable_batch=True, 
+				disable_batch=True,
 				resource_attributes=self.config,
 				api_key=api_key,
 				logging_exporter=log_exporter
 			)
-			
+
 		elif write_to_file:
 
 			log_exporter = self.init_log_provider()
 			Traceloop.init(
-				disable_batch=True, 
+				disable_batch=True,
 				exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
 				resource_attributes=self.config,
 				logging_exporter=log_exporter
 				)
 		elif otel_collector_endpoint is not None:
 			# Use the provided OTLP collector endpoint
-			
+
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
@@ -96,7 +96,7 @@ class Pulse:
 			logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 			Traceloop.init(
-				disable_batch=True, 
+				disable_batch=True,
 				api_endpoint=otel_collector_endpoint,
 				resource_attributes=self.config,
 				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
@@ -104,7 +104,7 @@ class Pulse:
 		else:
 
 			otel_collector_endpoint = form_otel_collector_endpoint(self.config[str(PROJECT)])
-			
+
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
@@ -120,12 +120,12 @@ class Pulse:
 			logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 			Traceloop.init(
-				disable_batch=True, 
+				disable_batch=True,
 				api_endpoint=otel_collector_endpoint,
 				resource_attributes=self.config,
 				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
 			)
-            
+
 	def init_log_provider(self):
 		"""
 		Initializes the log provider and sets up the logging configuration.
@@ -139,25 +139,37 @@ class Pulse:
 		json_log_exporter = get_json_file_exporter()
 		if json_log_exporter is not None:
 			log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
-	
+
 		# Set the log provider
 		_logs.set_logger_provider(log_provider)
-	
-		logging.basicConfig(level=logging.INFO)
-	
+
 		# Create a standard logging handler to bridge stdlib and OTel
 		handler = LoggingHandler()
-	
+
+        # Option 1: setup `force=True`
+		# logging.basicConfig(level=logging.INFO, handlers=[handler]) #
+
+		# Option 2: add handler to root logger
+		logging.root.setLevel(logging.INFO) # only change level if "not already set" (same logic as basic info aka level != (NOTSET=0))
+		logging.root.addHandler(handler)
+
+        # Option 3: Same as option 2 but less explicit
 		# Use the handler with Python’s standard logging
-		logger = logging.getLogger("myapp")
-		logger.setLevel(logging.INFO)
-		logger.addHandler(handler)
+		# logger = logging.getLogger("root")
+		# logger.setLevel(logging.INFO)
+		# logger.addHandler(handler)
+
+
+		# Doesn't work globally
+		# logger = logging.getLogger("myapp")
+		# logger.setLevel(logging.INFO)
+		# logger.addHandler(handler)
 		return log_exporter
-            
+
 	def pulse_add_session_id(self, session_id=None, **kwargs):
 		"""
 		Decorator to set Traceloop association properties for a function.
-		
+
 		Parameters:
 		- session_id: Optional session_id identifier
 		- **kwargs: Any additional association properties
@@ -168,47 +180,47 @@ class Pulse:
 				properties = {}
 				if session_id:
 					properties["session_id"] = session_id
-				properties.update(kwargs)  
-				
+				properties.update(kwargs)
+
 				# Set the association properties
 				Traceloop.set_association_properties(properties)
 				return func(*args, **kwargs_inner)
 			return wrapper
 		return decorator
 
-      
+
 	def add_traceid_header(self, func: Callable) -> Callable:
 		@wraps(func)
 		async def wrapper(request: Request, *args, **kwargs) -> Response:
 			# Generate unique trace ID
 			trace_id = str(uuid.uuid4())
-			
+
 			# Extract session ID from request headers if present
 			session_id = request.headers.get("X-SINGLESTORE-AI-SESSION-ID", "N/A")
-			
+
 			try:
 				# Execute the original function
 				result = await func(request, *args, **kwargs)
-				
+
 				# If result is already a Response object
 				if isinstance(result, Response):
 					result.headers["X-SINGLESTORE-TRACE-ID"] = trace_id
 					return result
-			
+
 				return JSONResponse(
 					content=result,
 					headers={"X-SINGLESTORE-TRACE-ID": trace_id}
 				)
-				
+
 			except Exception as e:
 				raise e
-				
+
 		return wrapper
-	
+
 
 def pulse_tool(func):
 	"""
-	A decorator that wraps a given function with a third-party `tool` decorator 
+	A decorator that wraps a given function with a third-party `tool` decorator
 	while preserving the original function's metadata.
 
 	Args:
@@ -229,8 +241,8 @@ def pulse_tool(func):
 
 def pulse_agent(func):
 	"""
-	A decorator that wraps a function to extract a `singlestore-session-id` from the 
-	`baggage` header in the keyword arguments (if present) and associates it with 
+	A decorator that wraps a function to extract a `singlestore-session-id` from the
+	`baggage` header in the keyword arguments (if present) and associates it with
 	Traceloop properties.
 
 	The decorated function is then wrapped with the `agent` decorator.
@@ -239,7 +251,7 @@ def pulse_agent(func):
 		func (Callable): The function to be decorated.
 
 	Returns:
-		Callable: The wrapped function with additional functionality for handling 
+		Callable: The wrapped function with additional functionality for handling
 		`singlestore-session-id` and associating it with Traceloop properties.
 	"""
 	@functools.wraps(func)
@@ -323,7 +335,7 @@ def get_json_file_exporter():
 		return JSONLFileLogExporter(json_log_file_path)
 	print("No JSON log file provided. Skipping JSON log export.")
 	return None
-	
+
 
 class JSONLFileLogExporter(LogExporter):
 	def __init__(self, file_path):
