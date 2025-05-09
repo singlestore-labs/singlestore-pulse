@@ -1,0 +1,338 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "telemetry.sdk.language",
+            "value": {
+              "stringValue": "python"
+            }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": {
+              "stringValue": "opentelemetry"
+            }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": {
+              "stringValue": "1.32.1"
+            }
+          },
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "unknown_service"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "httpx"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1746813706079016704",
+              "observedTimeUnixNano": "1746813706079105449",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "INFO:httpx:HTTP Request: POST https://apps.aws-virginia-nb2.svc.singlestore.com:8000/modelasaservice/34003ccb-470d-4605-8afb-c699e69adb9d/v1/chat/completions \"HTTP/1.1 200 OK\""
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/.venv/lib/python3.12/site-packages/httpx/_client.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "_send_single_request"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "1025"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "f140e46eaa7823fc"
+            }
+          ]
+        },
+        {
+          "scope": {
+            "name": "myapp"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1746813706090384128",
+              "observedTimeUnixNano": "1746813706090442974",
+              "severityNumber": 21,
+              "severityText": "CRITICAL",
+              "body": {
+                "stringValue": "CRITICAL LOGS of get_funny_current_time"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_current_time"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "91"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            },
+            {
+              "timeUnixNano": "1746813706090384128",
+              "observedTimeUnixNano": "1746813706090484121",
+              "severityNumber": 21,
+              "severityText": "CRITICAL",
+              "body": {
+                "stringValue": "CRITICAL:myapp:CRITICAL LOGS of get_funny_current_time"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_current_time"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "91"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            },
+            {
+              "timeUnixNano": "1746813706090509824",
+              "observedTimeUnixNano": "1746813706090516452",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "INFO LOGS of get_funny_current_time"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_current_time"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "93"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            },
+            {
+              "timeUnixNano": "1746813706090509824",
+              "observedTimeUnixNano": "1746813706090527232",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "INFO:myapp:INFO LOGS of get_funny_current_time"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_current_time"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "93"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            },
+            {
+              "timeUnixNano": "1746813706090563584",
+              "observedTimeUnixNano": "1746813706090571706",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "TEST LOGS toolC"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_timestamp_phrase"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "100"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            },
+            {
+              "timeUnixNano": "1746813706090563584",
+              "observedTimeUnixNano": "1746813706090580593",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "INFO:myapp:TEST LOGS toolC"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_timestamp_phrase"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "100"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            },
+            {
+              "timeUnixNano": "1746813706090591232",
+              "observedTimeUnixNano": "1746813706090595391",
+              "severityNumber": 21,
+              "severityText": "CRITICAL",
+              "body": {
+                "stringValue": "CRITICAL LOGS toolC"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_timestamp_phrase"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "102"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            },
+            {
+              "timeUnixNano": "1746813706090591232",
+              "observedTimeUnixNano": "1746813706090602484",
+              "severityNumber": 21,
+              "severityText": "CRITICAL",
+              "body": {
+                "stringValue": "CRITICAL:myapp:CRITICAL LOGS toolC"
+              },
+              "attributes": [
+                {
+                  "key": "code.filepath",
+                  "value": {
+                    "stringValue": "/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py"
+                  }
+                },
+                {
+                  "key": "code.function",
+                  "value": {
+                    "stringValue": "get_funny_timestamp_phrase"
+                  }
+                },
+                {
+                  "key": "code.lineno",
+                  "value": {
+                    "intValue": "102"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "6ac28806b02c98f6f841c93dab4f5237",
+              "spanId": "a80811b931e45c44"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

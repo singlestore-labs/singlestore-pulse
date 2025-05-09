@@ -1,0 +1,171 @@
+{
+    "name": "openai.chat",
+    "context": {
+        "trace_id": "0x43e00fee6d76378d7c8c75835e3f7dca",
+        "span_id": "0xd231b231dd0c3af0",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.CLIENT",
+    "parent_id": "0x411821612d011bbd",
+    "start_time": "2025-05-09T17:50:12.871467Z",
+    "end_time": "2025-05-09T17:50:14.683848Z",
+    "status": {
+        "status_code": "UNSET"
+    },
+    "attributes": {
+        "llm.request.type": "chat",
+        "traceloop.workflow.name": "Myagent",
+        "traceloop.association.properties.session.id": "9029513589509607",
+        "gen_ai.system": "OpenAI",
+        "gen_ai.request.model": "Qwen/Qwen2.5-7B-Instruct",
+        "llm.headers": "{'X-Session-ID': 'session_id'}",
+        "llm.is_streaming": false,
+        "gen_ai.openai.api_base": "https://apps.aws-virginia-nb2.svc.singlestore.com:8000/modelasaservice/34003ccb-470d-4605-8afb-c699e69adb9d/v1/",
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "What time is it?",
+        "llm.request.functions.0.name": "get_current_time",
+        "llm.request.functions.0.description": "Get the current time in HH:MM:SS format",
+        "llm.request.functions.0.parameters": "{}",
+        "llm.request.functions.1.name": "get_current_date",
+        "llm.request.functions.1.description": "Get the current date in YYYY-MM-DD format",
+        "llm.request.functions.1.parameters": "{}",
+        "llm.request.functions.2.name": "get_funny_current_time",
+        "llm.request.functions.2.description": "Get the current time in HH:MM:SS format with a funny phrase",
+        "llm.request.functions.2.parameters": "{\"type\": \"object\", \"properties\": {\"funny_phrase\": {\"type\": \"string\", \"description\": \"A humorous phrase to include with the time\"}}, \"required\": [\"funny_phrase\"]}",
+        "gen_ai.response.model": "Qwen/Qwen2.5-7B-Instruct",
+        "gen_ai.response.id": "chatcmpl-a4da86f931fd4f409a4fec88e12c0823",
+        "llm.usage.total_tokens": 290,
+        "gen_ai.usage.completion_tokens": 17,
+        "gen_ai.usage.prompt_tokens": 273,
+        "gen_ai.completion.0.finish_reason": "tool_calls",
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.tool_calls.0.id": "chatcmpl-tool-13e3517f9d4c499bb94bcc5a416be0a7",
+        "gen_ai.completion.0.tool_calls.0.name": "get_current_time",
+        "gen_ai.completion.0.tool_calls.0.arguments": "{}"
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
+            "singlestore.nova.app.type": "AGENT",
+            "singlestore.nova.app.id": "123456789",
+            "singlestore.nova.app.name": "MY_APP_NAME",
+            "singlestore.is.agent": "true",
+            "service.name": "pulse_otel/examples/time_agent.py"
+        },
+        "schema_url": ""
+    }
+}
+{
+    "name": "toolB.tool",
+    "context": {
+        "trace_id": "0x43e00fee6d76378d7c8c75835e3f7dca",
+        "span_id": "0xfd3de4e53e596759",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": "0x411821612d011bbd",
+    "start_time": "2025-05-09T17:50:14.684448Z",
+    "end_time": "2025-05-09T17:50:14.684914Z",
+    "status": {
+        "status_code": "ERROR",
+        "description": "get_current_time() missing 1 required positional argument: 'str'"
+    },
+    "attributes": {
+        "traceloop.workflow.name": "Myagent",
+        "traceloop.association.properties.session.id": "9029513589509607",
+        "traceloop.span.kind": "tool",
+        "traceloop.entity.name": "toolB",
+        "traceloop.entity.input": "{\"args\": [], \"kwargs\": {}}"
+    },
+    "events": [
+        {
+            "name": "exception",
+            "timestamp": "2025-05-09T17:50:14.684904Z",
+            "attributes": {
+                "exception.type": "TypeError",
+                "exception.message": "get_current_time() missing 1 required positional argument: 'str'",
+                "exception.stacktrace": "Traceback (most recent call last):\n  File \"/home/aanshu/Documents/projects/singlestore-pulse/.venv/lib/python3.12/site-packages/traceloop/sdk/decorators/base.py\", line 256, in sync_wrap\n    res = fn(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^\nTypeError: get_current_time() missing 1 required positional argument: 'str'\n",
+                "exception.escaped": "False"
+            }
+        }
+    ],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
+            "singlestore.nova.app.type": "AGENT",
+            "singlestore.nova.app.id": "123456789",
+            "singlestore.nova.app.name": "MY_APP_NAME",
+            "singlestore.is.agent": "true",
+            "service.name": "pulse_otel/examples/time_agent.py"
+        },
+        "schema_url": ""
+    }
+}
+{
+    "name": "Myagent.agent",
+    "context": {
+        "trace_id": "0x43e00fee6d76378d7c8c75835e3f7dca",
+        "span_id": "0x411821612d011bbd",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": null,
+    "start_time": "2025-05-09T17:50:12.841987Z",
+    "end_time": "2025-05-09T17:50:14.686858Z",
+    "status": {
+        "status_code": "ERROR",
+        "description": "get_current_time() missing 1 required positional argument: 'str'"
+    },
+    "attributes": {
+        "traceloop.workflow.name": "Myagent",
+        "traceloop.association.properties.session.id": "9029513589509607",
+        "traceloop.span.kind": "agent",
+        "traceloop.entity.name": "Myagent",
+        "traceloop.entity.input": "{\"args\": [\"What time is it?\"], \"kwargs\": {}}"
+    },
+    "events": [
+        {
+            "name": "exception",
+            "timestamp": "2025-05-09T17:50:14.686853Z",
+            "attributes": {
+                "exception.type": "TypeError",
+                "exception.message": "get_current_time() missing 1 required positional argument: 'str'",
+                "exception.stacktrace": "Traceback (most recent call last):\n  File \"/home/aanshu/Documents/projects/singlestore-pulse/.venv/lib/python3.12/site-packages/traceloop/sdk/decorators/base.py\", line 256, in sync_wrap\n    res = fn(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^\n  File \"/home/aanshu/Documents/projects/singlestore-pulse/pulse_otel/examples/time_agent.py\", line 129, in agent_run\n    result = get_current_time()\n             ^^^^^^^^^^^^^^^^^^\n  File \"/home/aanshu/Documents/projects/singlestore-pulse/.venv/lib/python3.12/site-packages/traceloop/sdk/decorators/base.py\", line 256, in sync_wrap\n    res = fn(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^\nTypeError: get_current_time() missing 1 required positional argument: 'str'\n",
+                "exception.escaped": "False"
+            }
+        }
+    ],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
+            "singlestore.nova.app.type": "AGENT",
+            "singlestore.nova.app.id": "123456789",
+            "singlestore.nova.app.name": "MY_APP_NAME",
+            "singlestore.is.agent": "true",
+            "service.name": "pulse_otel/examples/time_agent.py"
+        },
+        "schema_url": ""
+    }
+}
