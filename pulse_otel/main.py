@@ -30,7 +30,8 @@ from pulse_otel.consts import (
 	LOCAL_LOGS_FILE,
 	SESSION_ID,
 	HEADER_INCOMING_SESSION_ID,
-	PROJECT
+	PROJECT,
+	LIVE_LOGS_FILE_PATH,
 )
 import logging
 
@@ -84,7 +85,7 @@ class Pulse:
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
 
-			# create json log exporter
+			# create json log exporter for live logs
 			json_log_exporter = get_json_file_exporter()
 			if json_log_exporter is not None:
 				log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
@@ -108,7 +109,8 @@ class Pulse:
 			log_provider = LoggerProvider()
 			_logs.set_logger_provider(log_provider)
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
-			# create json log exporter
+
+			# create json log exporter for live logs
 			json_log_exporter = get_json_file_exporter()
 			if json_log_exporter is not None:
 				log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
@@ -135,7 +137,7 @@ class Pulse:
 		log_exporter = FileLogExporter(LOCAL_LOGS_FILE)
 		log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-		# create json log exporter
+		# create json log exporter for live logs
 		json_log_exporter = get_json_file_exporter()
 		if json_log_exporter is not None:
 			log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
@@ -323,7 +325,7 @@ def get_json_log_file_path():
 	"""
 	Gets the filename for live logs from env vars
 	"""
-	return os.getenv("JSON_LOGS_FILE_NAME")
+	return os.getenv(LIVE_LOGS_FILE_PATH)
 
 def get_json_file_exporter():
 	"""
@@ -351,7 +353,6 @@ class JSONLFileLogExporter(LogExporter):
 			return LogExportResult.FAILURE
 		try:
 			for r in batch:
-				print(r)
 				self.f.write(r.log_record.to_json(None) + '\n')
 				self.f.flush()
 			return LogExportResult.SUCCESS
