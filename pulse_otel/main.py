@@ -329,10 +329,11 @@ def get_json_log_file_path():
 
 def get_json_file_exporter():
 	"""
-	get json log exporter if env var exists
+	get json log exporter if env var exists and parent director exists
 	"""
 	json_log_file_path = get_json_log_file_path()
-	if json_log_file_path is not None and json_log_file_path != "" and os.path.exists(json_log_file_path):
+	parent_dir = os.path.dirname(json_log_file_path)
+	if json_log_file_path is not None and json_log_file_path != "" and os.path.exists(parent_dir):
 		print(f"Logging to file: {json_log_file_path}")
 		return JSONLFileLogExporter(json_log_file_path)
 	print("No JSON log file provided. Skipping JSON log export.")
