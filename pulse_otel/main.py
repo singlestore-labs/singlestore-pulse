@@ -31,7 +31,7 @@ from pulse_otel.consts import (
 	SESSION_ID,
 	HEADER_INCOMING_SESSION_ID,
 	PROJECT,
-	LIVE_LOGS_FILE_PATH,
+	LIVE_LOGS_FILE_PATH_ENV_VAR,
 )
 import logging
 
@@ -308,15 +308,14 @@ def get_jsonl_log_file_path():
 	"""
 	Gets the filename for live logs from env vars
 	"""
-	return os.getenv(LIVE_LOGS_FILE_PATH)
+	return os.getenv(LIVE_LOGS_FILE_PATH_ENV_VAR)
 
 def get_jsonl_file_exporter():
 	"""
 	get json log exporter if env var exists and parent director exists
 	"""
 	jsonl_log_file_path = get_jsonl_log_file_path()
-	parent_dir = os.path.dirname(jsonl_log_file_path)
-	if jsonl_log_file_path is not None and jsonl_log_file_path != "" and os.path.exists(parent_dir):
+	if jsonl_log_file_path is not None and jsonl_log_file_path != "" and os.path.exists(os.path.dirname(jsonl_log_file_path)):
 		print(f"Logging to file: {jsonl_log_file_path}")
 		return JSONLFileLogExporter(jsonl_log_file_path)
 	print("No JSON log file provided. Skipping JSON log export.")
