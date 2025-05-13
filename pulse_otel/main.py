@@ -86,9 +86,9 @@ class Pulse:
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
 
 			# create json log exporter for live logs
-			json_log_exporter = get_json_file_exporter()
-			if json_log_exporter is not None:
-				log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
+			jsonl_file_exporter = get_jsonl_file_exporter()
+			if jsonl_file_exporter is not None:
+				log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
 			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
@@ -111,9 +111,9 @@ class Pulse:
 			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
 
 			# create json log exporter for live logs
-			json_log_exporter = get_json_file_exporter()
-			if json_log_exporter is not None:
-				log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
+			jsonl_file_exporter = get_jsonl_file_exporter()
+			if jsonl_file_exporter is not None:
+				log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
 			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
@@ -138,34 +138,17 @@ class Pulse:
 		log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 		# create json log exporter for live logs
-		json_log_exporter = get_json_file_exporter()
-		if json_log_exporter is not None:
-			log_provider.add_log_record_processor(SimpleLogRecordProcessor(json_log_exporter))
+		jsonl_file_exporter = get_jsonl_file_exporter()
+		if jsonl_file_exporter is not None:
+			log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
 		# Set the log provider
 		_logs.set_logger_provider(log_provider)
 
 		# Create a standard logging handler to bridge stdlib and OTel
 		handler = LoggingHandler()
-
-        # Option 1: setup `force=True`
-		# logging.basicConfig(level=logging.INFO, handlers=[handler]) #
-
-		# Option 2: add handler to root logger
-		logging.root.setLevel(logging.INFO) # only change level if "not already set" (same logic as basic info aka level != (NOTSET=0))
+		logging.root.setLevel(logging.INFO)
 		logging.root.addHandler(handler)
-
-        # Option 3: Same as option 2 but less explicit
-		# Use the handler with Python’s standard logging
-		# logger = logging.getLogger("root")
-		# logger.setLevel(logging.INFO)
-		# logger.addHandler(handler)
-
-
-		# Doesn't work globally
-		# logger = logging.getLogger("myapp")
-		# logger.setLevel(logging.INFO)
-		# logger.addHandler(handler)
 		return log_exporter
 
 	def pulse_add_session_id(self, session_id=None, **kwargs):
@@ -321,21 +304,21 @@ class FileLogExporter(LogExporter):
         # No specific shutdown logic needed for file-based exporting
         pass
 
-def get_json_log_file_path():
+def get_jsonl_log_file_path():
 	"""
 	Gets the filename for live logs from env vars
 	"""
 	return os.getenv(LIVE_LOGS_FILE_PATH)
 
-def get_json_file_exporter():
+def get_jsonl_file_exporter():
 	"""
 	get json log exporter if env var exists and parent director exists
 	"""
-	json_log_file_path = get_json_log_file_path()
-	parent_dir = os.path.dirname(json_log_file_path)
-	if json_log_file_path is not None and json_log_file_path != "" and os.path.exists(parent_dir):
-		print(f"Logging to file: {json_log_file_path}")
-		return JSONLFileLogExporter(json_log_file_path)
+	jsonl_log_file_path = get_jsonl_log_file_path()
+	parent_dir = os.path.dirname(jsonl_log_file_path)
+	if jsonl_log_file_path is not None and jsonl_log_file_path != "" and os.path.exists(parent_dir):
+		print(f"Logging to file: {jsonl_log_file_path}")
+		return JSONLFileLogExporter(jsonl_log_file_path)
 	print("No JSON log file provided. Skipping JSON log export.")
 	return None
 
