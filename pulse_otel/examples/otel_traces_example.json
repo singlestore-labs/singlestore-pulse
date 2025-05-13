@@ -1,0 +1,149 @@
+{
+    "name": "openai.chat",
+    "context": {
+        "trace_id": "0x4ee33d443eb995bd84f9c9e4fa40466e",
+        "span_id": "0x62456af651ea9b38",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.CLIENT",
+    "parent_id": "0x18fcee77d9182d81",
+    "start_time": "2025-05-09T17:51:58.220379Z",
+    "end_time": "2025-05-09T17:52:01.329190Z",
+    "status": {
+        "status_code": "UNSET"
+    },
+    "attributes": {
+        "llm.request.type": "chat",
+        "traceloop.workflow.name": "Myagent",
+        "traceloop.association.properties.session.id": "7126782417549399",
+        "gen_ai.system": "OpenAI",
+        "gen_ai.request.model": "Qwen/Qwen2.5-7B-Instruct",
+        "llm.headers": "{'X-Session-ID': 'session_id'}",
+        "llm.is_streaming": false,
+        "gen_ai.openai.api_base": "https://apps.aws-virginia-nb2.svc.singlestore.com:8000/modelasaservice/34003ccb-470d-4605-8afb-c699e69adb9d/v1/",
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "What time is it? Make it funny!",
+        "llm.request.functions.0.name": "get_current_time",
+        "llm.request.functions.0.description": "Get the current time in HH:MM:SS format",
+        "llm.request.functions.0.parameters": "{}",
+        "llm.request.functions.1.name": "get_current_date",
+        "llm.request.functions.1.description": "Get the current date in YYYY-MM-DD format",
+        "llm.request.functions.1.parameters": "{}",
+        "llm.request.functions.2.name": "get_funny_current_time",
+        "llm.request.functions.2.description": "Get the current time in HH:MM:SS format with a funny phrase",
+        "llm.request.functions.2.parameters": "{\"type\": \"object\", \"properties\": {\"funny_phrase\": {\"type\": \"string\", \"description\": \"A humorous phrase to include with the time\"}}, \"required\": [\"funny_phrase\"]}",
+        "gen_ai.response.model": "Qwen/Qwen2.5-7B-Instruct",
+        "gen_ai.response.id": "chatcmpl-624036ebea3f45a3a40733b91183e5df",
+        "llm.usage.total_tokens": 316,
+        "gen_ai.usage.completion_tokens": 39,
+        "gen_ai.usage.prompt_tokens": 277,
+        "gen_ai.completion.0.finish_reason": "tool_calls",
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.tool_calls.0.id": "chatcmpl-tool-435ae10e2922401f9ae5ad1b1166056d",
+        "gen_ai.completion.0.tool_calls.0.name": "get_funny_current_time",
+        "gen_ai.completion.0.tool_calls.0.arguments": "{\"funny_phrase\": \"according to the clock on my desk, it's time to get silly!\"}"
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
+            "singlestore.nova.app.type": "AGENT",
+            "singlestore.nova.app.id": "123456789",
+            "singlestore.nova.app.name": "MY_APP_NAME",
+            "singlestore.is.agent": "true",
+            "service.name": "pulse_otel/examples/time_agent.py"
+        },
+        "schema_url": ""
+    }
+}
+{
+    "name": "toolC.tool",
+    "context": {
+        "trace_id": "0x4ee33d443eb995bd84f9c9e4fa40466e",
+        "span_id": "0x7fde55e6c1229b0a",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": "0x18fcee77d9182d81",
+    "start_time": "2025-05-09T17:52:01.329656Z",
+    "end_time": "2025-05-09T17:52:01.329960Z",
+    "status": {
+        "status_code": "UNSET"
+    },
+    "attributes": {
+        "traceloop.workflow.name": "Myagent",
+        "traceloop.association.properties.session.id": "7126782417549399",
+        "traceloop.span.kind": "tool",
+        "traceloop.entity.name": "toolC",
+        "traceloop.entity.input": "{\"args\": [\"according to the clock on my desk, it's time to get silly!\"], \"kwargs\": {}}",
+        "traceloop.entity.output": "\"Here is a funny timestamp: according to the clock on my desk, it's time to get silly!! The time is 23:22:01\""
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
+            "singlestore.nova.app.type": "AGENT",
+            "singlestore.nova.app.id": "123456789",
+            "singlestore.nova.app.name": "MY_APP_NAME",
+            "singlestore.is.agent": "true",
+            "service.name": "pulse_otel/examples/time_agent.py"
+        },
+        "schema_url": ""
+    }
+}
+{
+    "name": "Myagent.agent",
+    "context": {
+        "trace_id": "0x4ee33d443eb995bd84f9c9e4fa40466e",
+        "span_id": "0x18fcee77d9182d81",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": null,
+    "start_time": "2025-05-09T17:51:58.188243Z",
+    "end_time": "2025-05-09T17:52:01.330112Z",
+    "status": {
+        "status_code": "UNSET"
+    },
+    "attributes": {
+        "traceloop.workflow.name": "Myagent",
+        "traceloop.association.properties.session.id": "7126782417549399",
+        "traceloop.span.kind": "agent",
+        "traceloop.entity.name": "Myagent",
+        "traceloop.entity.input": "{\"args\": [\"What time is it? Make it funny!\"], \"kwargs\": {}}",
+        "traceloop.entity.output": "\"Here is a funny timestamp: according to the clock on my desk, it's time to get silly!! The time is 23:22:01\""
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "singlestore.organization": "",
+            "singlestore.project": "",
+            "session.id": "",
+            "singlestore.hostname": "",
+            "singlestore.workload.type": "NotebookCodeService",
+            "singlestore.nova.app.base.path": "",
+            "singlestore.nova.app.base.url": "",
+            "singlestore.nova.app.type": "AGENT",
+            "singlestore.nova.app.id": "123456789",
+            "singlestore.nova.app.name": "MY_APP_NAME",
+            "singlestore.is.agent": "true",
+            "service.name": "pulse_otel/examples/time_agent.py"
+        },
+        "schema_url": ""
+    }
+}
