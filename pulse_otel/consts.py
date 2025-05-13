@@ -15,7 +15,7 @@ IS_AGENT = "singlestore.is.agent"
 WORKLOAD_TYPE = "singlestore.workload.type"
 APP_BASE_PATH = "singlestore.nova.app.base.path"
 APP_BASE_URL = "singlestore.nova.app.base.url"
-LIVE_LOGS_FILE_PATH_ENV_VAR = "LIVE_LOGS_FILE_PATH"
+LIVE_LOGS_FILE_PATH = "LIVE_LOGS_FILE_PATH"
 
 # default env variables from notebook server
 DEFAULT_ENV_VARIABLES = {

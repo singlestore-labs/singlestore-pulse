@@ -31,7 +31,7 @@ from pulse_otel.consts import (
 	SESSION_ID,
 	HEADER_INCOMING_SESSION_ID,
 	PROJECT,
-	LIVE_LOGS_FILE_PATH_ENV_VAR,
+	LIVE_LOGS_FILE_PATH,
 )
 import logging
 
@@ -308,7 +308,7 @@ def get_jsonl_log_file_path():
 	"""
 	Gets the filename for live logs from env vars
 	"""
-	return os.getenv(LIVE_LOGS_FILE_PATH_ENV_VAR)
+	return os.getenv(LIVE_LOGS_FILE_PATH)
 
 def get_jsonl_file_exporter():
 	"""
