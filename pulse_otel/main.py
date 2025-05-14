@@ -121,7 +121,8 @@ class Pulse:
 					disable_batch=True,
 					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,
-					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
+					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
+					logging_exporter=log_exporter,
 				)
 		except Exception as e:
 			print(f"Error initializing Pulse: {e}")
