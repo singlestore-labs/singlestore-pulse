@@ -11,12 +11,8 @@ from pulse_otel import Pulse, pulse_agent, pulse_tool
 
 import logging
 
-handler = LoggingHandler()
-
-# Use the handler with Python’s standard logging
 logger = logging.getLogger("myapp")
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 def get_configs():
     """
@@ -72,9 +68,9 @@ tools = [
 # Define a simple tool: a function to get the current time
 @pulse_tool("toolB")
 def get_current_time():
-    logger.info("TEST LOGS toolB")
-    logger.debug("DEBUG LOGS toolB")
-    logger.critical("CRITICAL LOGS toolB")
+    logger.info("TEST LOGS get_current_time")
+    logger.debug("DEBUG LOGS get_current_time")
+    logger.critical("CRITICAL LOGS get_current_time")
     return datetime.datetime.now().strftime("%H:%M:%S")
 
 # Define a new tool: a function to get the current date
@@ -97,9 +93,9 @@ def get_funny_current_time(funny_phrase):
     return get_funny_timestamp_phrase(funny_timestamp)
 
 def get_funny_timestamp_phrase(funny_timestamp):
-    logger.info("TEST LOGS toolC")
-    logger.debug("DEBUG LOGS toolC")
-    logger.critical("CRITICAL LOGS toolC")
+    logger.info("TEST LOGS get_funny_timestamp_phrase")
+    logger.debug("DEBUG LOGS get_funny_timestamp_phrase")
+    logger.critical("CRITICAL LOGS get_funny_timestamp_phrase")
     return f"Here is a funny timestamp: {funny_timestamp}"
     
 # Simple agent function to process user input and decide on tool use

@@ -1,9 +1,8 @@
 import functools
 import os
-
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _events, _logs, trace
+from opentelemetry import _logs
 
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
@@ -21,8 +20,7 @@ import random
 from functools import wraps
 import uuid
 import logging
-from typing import Callable, Any
-import typing
+from typing import Callable
 
 from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint
 from pulse_otel.consts import (
@@ -41,12 +39,12 @@ class Pulse:
 		Initializes the main class with configuration for logging and tracing.
 
 		Args:
-			write_to_file (bool): Determines whether to write logs and traces to a file.
+			write_to_file (bool): Determines whether to write logs and traces to a file. 
 								  If False, logs and traces are sent to an OpenTelemetry collector.
-								  Defaults to False.
+								  Defaults to False.This mode is for local development.
 			write_to_traceloop (bool): Determines whether to send logs and traces to Traceloop.
 			api_key (str): The API key for Traceloop. Required if `write_to_traceloop` is True.
-			otel_collector_endpoint (str): The endpoint for the OpenTelemetry collector. Required if `write_to_file` is False.
+			otel_collector_endpoint (str): The endpoint for the OpenTelemetry collector. 
 
 		Behavior:
 			- If `write_to_file` is False:
@@ -58,75 +56,71 @@ class Pulse:
 				- Initializes a custom log provider for file-based logging.
 				- Initializes Traceloop with a custom file span exporter and resource attributes.
 		"""
-		self.config = get_environ_vars()
-		if write_to_traceloop and api_key:
-			log_exporter = self.init_log_provider()
+		try:
+			self.config = get_environ_vars()
+			if write_to_traceloop and api_key:
+				log_exporter = self.init_log_provider()
 
-			Traceloop.init(
-				disable_batch=True,
-				resource_attributes=self.config,
-				api_key=api_key,
-				logging_exporter=log_exporter
-			)
-
-		elif write_to_file:
-
-			log_exporter = self.init_log_provider()
-			Traceloop.init(
-				disable_batch=True,
-				exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
-				resource_attributes=self.config,
-				logging_exporter=log_exporter
+				Traceloop.init(
+					disable_batch=True,
+					resource_attributes=self.config,
+					api_key=api_key,
+					logging_exporter=log_exporter
 				)
-		elif otel_collector_endpoint is not None:
-			# Use the provided OTLP collector endpoint
 
-			log_provider = LoggerProvider()
-			_logs.set_logger_provider(log_provider)
-			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+			elif write_to_file:
 
-			# create json log exporter for live logs
-			jsonl_file_exporter = get_jsonl_file_exporter()
-			if jsonl_file_exporter is not None:
-				log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
+				log_exporter = self.init_log_provider()
+				Traceloop.init(
+					disable_batch=True,
+					exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
+					resource_attributes=self.config,
+					logging_exporter=log_exporter
+					)
+			else: 
+				
+				if otel_collector_endpoint is None:
+					otel_collector_endpoint = form_otel_collector_endpoint(self.config[str(PROJECT)])
 
-			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+				"""
+					Use the provided OTLP collector endpoint
+					First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
+				"""
+				log_provider = LoggerProvider()
+				_logs.set_logger_provider(log_provider)
+				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+				log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
+				# create json log exporter for live logs
+				jsonl_file_exporter = get_jsonl_file_exporter()
+				if jsonl_file_exporter is not None:
+					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
-			logging.basicConfig(level=logging.INFO, handlers=[handler])
+				"""
+					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
+				"""
+				handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
 
-			Traceloop.init(
-				disable_batch=True,
-				api_endpoint=otel_collector_endpoint,
-				resource_attributes=self.config,
-				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
-			)
-		else:
+				"""
+					In Python logging, both the logger and the handler have their own log levels, and both levels must be satisfied for a log record to be processed and exported.
 
-			otel_collector_endpoint = form_otel_collector_endpoint(self.config[str(PROJECT)])
+					1. Handler Level (LoggingHandler(level=logging.DEBUG, ...)):
+					This means the handler is willing to process log records at DEBUG level and above (DEBUG, INFO, WARNING, etc.).
 
-			log_provider = LoggerProvider()
-			_logs.set_logger_provider(log_provider)
-			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+					2. Root Logger Level (logging.basicConfig(level=logging.INFO, ...)):
+					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
+				"""
+				logging.basicConfig(level=logging.INFO, handlers=[handler])
 
-			# create json log exporter for live logs
-			jsonl_file_exporter = get_jsonl_file_exporter()
-			if jsonl_file_exporter is not None:
-				log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
-
-			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
-
-			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
-
-			logging.basicConfig(level=logging.INFO, handlers=[handler])
-
-			Traceloop.init(
-				disable_batch=True,
-				api_endpoint=otel_collector_endpoint,
-				resource_attributes=self.config,
-				exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
-			)
+				Traceloop.init(
+					disable_batch=True,
+					api_endpoint=otel_collector_endpoint,
+					resource_attributes=self.config,
+					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
+				)
+		except Exception as e:
+			print(f"Error initializing Pulse: {e}")
+			
 
 	def init_log_provider(self):
 		"""
