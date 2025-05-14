@@ -21,6 +21,7 @@ from functools import wraps
 import uuid
 import logging
 from typing import Callable
+import typing
 
 from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint
 from pulse_otel.consts import (
@@ -57,6 +58,7 @@ class Pulse:
 				- Initializes Traceloop with a custom file span exporter and resource attributes.
 		"""
 		try:
+			print("Initializing Pulse...")
 			self.config = get_environ_vars()
 			if write_to_traceloop and api_key:
 				log_exporter = self.init_log_provider()
@@ -118,6 +120,7 @@ class Pulse:
 					resource_attributes=self.config,
 					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
 				)
+				print(f"Pulse initialized with OTLP collector endpoint: {otel_collector_endpoint}")
 		except Exception as e:
 			print(f"Error initializing Pulse: {e}")
 			
