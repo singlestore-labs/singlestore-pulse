@@ -81,7 +81,11 @@ class Pulse:
 			else: 
 				
 				if otel_collector_endpoint is None:
-					otel_collector_endpoint = form_otel_collector_endpoint(self.config[str(PROJECT)])
+					try:
+						projectID = self.config[str(PROJECT)]
+					except KeyError:
+						raise ValueError(f"Project ID '{PROJECT}' not found in configuration.")
+					otel_collector_endpoint = form_otel_collector_endpoint(projectID)
 
 				"""
 					Use the provided OTLP collector endpoint
