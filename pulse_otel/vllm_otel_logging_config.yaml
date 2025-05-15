@@ -1,0 +1,35 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  simple:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  json:
+    class: pythonjsonlogger.jsonlogger.JsonFormatter
+    format: '%(asctime)s %(name)s %(levelname)s %(message)s'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: simple
+    stream: ext://sys.stdout
+  
+  otlp:
+    class: opentelemetry.sdk.extension.logging._internal.handler.OTLPHandler
+    level: INFO
+    formatter: json
+    endpoint: http://192.168.29.210:4317  # Replace with your endpoint
+    protocol: http/protobuf  # or grpc
+    timeout: 10
+
+loggers:
+  vllm:
+    level: INFO
+    handlers: [console, otlp]
+    propagate: false
+
+root:
+  level: INFO
+  handlers: [console, otlp]
+  propagate: no
