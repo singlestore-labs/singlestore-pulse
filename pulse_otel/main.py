@@ -117,9 +117,12 @@ class Pulse:
 				"""
 				logging.basicConfig(level=logging.INFO, handlers=[handler])
 
+				vllm_logger = logging.getLogger("vllm")
+				vllm_logger.setLevel(logging.DEBUG)  # Or INFO, as needed
+				vllm_logger.addHandler(handler)  # Usse the existing handler instead of otel_handler
+
 				Traceloop.init(
 					disable_batch=True,
-					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,
 					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
 					logging_exporter=log_exporter,
