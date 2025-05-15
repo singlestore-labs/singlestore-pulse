@@ -4,6 +4,7 @@ from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
 from opentelemetry import _logs
 
+from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
@@ -121,12 +122,23 @@ class Pulse:
 					disable_batch=True,
 					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,
-					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
+					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
+					telemetry_enabled=False
 				)
 		except Exception as e:
 			print(f"Error initializing Pulse: {e}")
 			
+	def enable_content_tracing(self, enabled: bool = True):
+		"""
+		Enables or disables content tracing by attaching a context variable.
+		Sets a key called override_enable_content_tracing in the OpenTelemetry context to True right before 
+		making the LLM call you want to trace with prompts. This will create a new context that will instruct instrumentations to log prompts and completions as span attributes.
 
+		Args:
+			enabled (bool): A flag to enable or disable content tracing. Defaults to True.
+		"""
+		attach(set_value("override_enable_content_tracing", enabled))
+		
 	def init_log_provider(self):
 		"""
 		Initializes the log provider and sets up the logging configuration.
