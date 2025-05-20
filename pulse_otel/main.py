@@ -1,4 +1,5 @@
 import functools
+import json
 import os
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
@@ -105,7 +106,7 @@ class Pulse:
 				"""
 					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
 				"""
-				handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
+				otel_handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
 
 				"""
 					In Python logging, both the logger and the handler have their own log levels, and both levels must be satisfied for a log record to be processed and exported.
@@ -116,7 +117,21 @@ class Pulse:
 					2. Root Logger Level (logging.basicConfig(level=logging.INFO, ...)):
 					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
 				"""
-				logging.basicConfig(level=logging.INFO, handlers=[handler])
+				# logging.basicConfig(level=logging.INFO, handlers=[handler])
+				# Attach to vllm logger
+				vllm_logger = logging.getLogger("vllm")
+				vllm_logger.addHandler(otel_handler)
+				vllm_logger.setLevel(logging.DEBUG)
+
+
+				# Register your custom handler with the logging system
+				# logging.root.handlers = [otlp_handler]
+				# logging._handlerList.append(otlp_handler)
+				# logging._handlers["otlp_handler"] = otlp_handler
+
+				with open("vllm_logging_config.json", "r") as f:
+					config = json.load(f)
+					logging.config.dictConfig(config)
 
 				Traceloop.init(
 					disable_batch=True,
