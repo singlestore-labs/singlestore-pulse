@@ -1,0 +1,21 @@
+{
+	"version": 1,
+	"disable_existing_loggers": false,
+	"handlers": {
+	  "otel": {
+		"class": "logging.NullHandler"  
+	  }
+	},
+	"root": {
+	  "level": "INFO",
+	  "handlers": ["otel"]
+	},
+	"loggers": {
+	  "vllm": {
+		"level": "DEBUG",
+		"handlers": ["otel"],
+		"propagate": false
+	  }
+	}
+  }
+  
