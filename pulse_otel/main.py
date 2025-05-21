@@ -36,7 +36,7 @@ from pulse_otel.consts import (
 import logging
 
 class Pulse:
-	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None, otel_collector_endpoint: str = None):
+	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None, otel_collector_endpoint: str = None, only_live_logs: bool = False):
 		"""
 		Initializes the main class with configuration for logging and tracing.
 
@@ -47,6 +47,8 @@ class Pulse:
 			write_to_traceloop (bool): Determines whether to send logs and traces to Traceloop.
 			api_key (str): The API key for Traceloop. Required if `write_to_traceloop` is True.
 			otel_collector_endpoint (str): The endpoint for the OpenTelemetry collector. 
+			only_live_logs (bool): If True, only live logs are captured and sent to a JSONL file.
+								   This is useful for debugging and development purposes.
 
 		Behavior:
 			- If `write_to_file` is False:
@@ -79,6 +81,14 @@ class Pulse:
 					resource_attributes=self.config,
 					logging_exporter=log_exporter
 					)
+			elif only_live_logs:
+				# create json log exporter for live logs
+				jsonl_file_exporter = get_jsonl_file_exporter()
+				if jsonl_file_exporter is not None:
+					log_provider = LoggerProvider()
+					_logs.set_logger_provider(log_provider)
+					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
+					logging.basicConfig(level=logging.INFO, handlers=[LoggingHandler()])
 			else: 
 				
 				if otel_collector_endpoint is None:
