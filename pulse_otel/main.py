@@ -24,7 +24,7 @@ import logging
 from typing import Callable
 import typing
 
-from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint
+from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint, extract_session_id
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
@@ -242,8 +242,12 @@ def pulse_tool(_func=None, name=None):
 		@pulse_tool
 		def my_function():
 			# Function implementation
+
+		@pulse_tool(name="my_tool")
+		def my_function():
+			# Function implementation
     """
-    def decorator(func):
+    def tool_decorator(func):
         tool_name = name or func.__name__
         decorated_func = tool(tool_name)(func)
         @functools.wraps(func)
@@ -253,14 +257,14 @@ def pulse_tool(_func=None, name=None):
 
     # Handle @pulse_tool("name")
     if isinstance(_func, str):
-        return decorator_with_name(_func)
+        return tool_decorator_with_name(_func)
     # Handle @pulse_tool or @pulse_tool(name="name")
     if _func is None:
-        return decorator
+        return tool_decorator
     else:
-        return decorator(_func)
+        return tool_decorator(_func)
 
-def decorator_with_name(tool_name):
+def tool_decorator_with_name(tool_name):
     def wrapper(func):
         decorated_func = tool(tool_name)(func)
         @functools.wraps(func)
@@ -269,8 +273,29 @@ def decorator_with_name(tool_name):
         return inner
     return wrapper
 
+def agent_decorator_with_name(agent_name):
+	def wrapper(func):
+		decorated_func = agent(agent_name)(func)
+		@functools.wraps(func)
+		def inner(*args, **kwargs):
+			add_session_id_to_span_attributes(kwargs)
+			return decorated_func(*args, **kwargs)
+		return inner
+	return wrapper
 
-def pulse_agent(_func=None, *, name=None):
+def add_session_id_to_span_attributes(kwargs):
+    session_id = extract_session_id(kwargs)
+    if session_id:
+        properties = {SESSION_ID: session_id}
+        Traceloop.set_association_properties(properties)
+        print(f"[pulse_agent] singlestore-session-id: {session_id}")
+    else:
+        random_session_id = random.randint(10**15, 10**16 - 1)
+        properties = {SESSION_ID: str(random_session_id)}
+        Traceloop.set_association_properties(properties)
+        print("[pulse_agent] No singlestore-session-id found in baggage.")
+
+def pulse_agent(_func=None, name=None):
 	"""
 	A decorator that integrates with the SingleStore Pulse agent to associate
 	session IDs with function calls for tracing purposes. It extracts the 
@@ -304,42 +329,28 @@ def pulse_agent(_func=None, *, name=None):
 		def my_function(headers):
 			# Function logic here
 			pass
+			
+		@pulse_agent("my_app")
+		def my_function(headers):
+			# Function logic here
+			pass
 	"""
-	def decorator(func):
+
+	def agent_decorator(func):
+		agent_name = name or func.__name__
+		decorated_func = agent(agent_name)(func)
 		@functools.wraps(func)
-		def wrapped(*args, **kwargs):
-			session_id = None
-			if 'headers' in kwargs:
-				headers = kwargs['headers']
-				baggage = headers.get('baggage')
-				if baggage:
-					parts = [item.strip() for item in baggage.split(',')]
-					for part in parts:
-						if '=' in part:
-							key, value = part.split('=', 1)
-							if key.strip() == HEADER_INCOMING_SESSION_ID:
-								session_id = value.strip()
-								break
+		def wrapper(*args, **kwargs):
+			add_session_id_to_span_attributes(kwargs)
+			return decorated_func(*args, **kwargs)
+		return wrapper
 
-			if session_id:
-				properties = {SESSION_ID: session_id}
-				Traceloop.set_association_properties(properties)
-				print(f"[pulse_agent] singlestore-session-id: {session_id}")
-			else:
-				random_session_id = random.randint(10**15, 10**16 - 1)
-				properties = {SESSION_ID: str(random_session_id)}
-				Traceloop.set_association_properties(properties)
-				print("[pulse_agent] No singlestore-session-id found in baggage.")
-
-			resolved_name = name or os.getenv("SINGLESTOREDB_APP_NAME", "DEFAULT_APP_NAME")
-			return agent(resolved_name)(func)(*args, **kwargs)
-
-		return wrapped
-
+	if isinstance(_func, str):
+		return agent_decorator_with_name(_func)
 	if _func is None:
-		return decorator
+		return agent_decorator
 	else:
-		return decorator(_func)
+		return agent_decorator(_func)
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
