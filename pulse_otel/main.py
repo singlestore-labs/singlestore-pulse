@@ -224,13 +224,13 @@ class Pulse:
 		return wrapper
 
 
-def pulse_tool(_func=None, name=None):
-    """
-    Decorator to register a function as a tool. Can be used as @pulse_tool, @pulse_tool("name"), or @pulse_tool(name="name").
-    If no argument is passed, uses the function name as the tool name.
+def pulse_tool(_func=None, *, name=None):
+	"""
+	Decorator to register a function as a tool. Can be used as @pulse_tool, @pulse_tool("name"), or @pulse_tool(name="name").
+	If no argument is passed, uses the function name as the tool name.
 	Args:
 		_func: The function to be decorated.
-		tool_name: Optional name for the tool. If not provided, the function name is used.
+		name: Optional name for the tool. If not provided, the function name is used.
 	Returns:
 		A decorator that registers the function as a tool with the specified name.
 
@@ -246,32 +246,26 @@ def pulse_tool(_func=None, name=None):
 		@pulse_tool(name="my_tool")
 		def my_function():
 			# Function implementation
-    """
-    def tool_decorator(func):
-        tool_name = name or func.__name__
-        decorated_func = tool(tool_name)(func)
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            return decorated_func(*args, **kwargs)
-        return wrapper
+	"""
+	def decorator(func):
+		tool_name = name or func.__name__
+		decorated_func = tool(tool_name)(func)
+		return decorated_func
 
-    # Handle @pulse_tool("name")
-    if isinstance(_func, str):
-        return tool_decorator_with_name(_func)
-    # Handle @pulse_tool or @pulse_tool(name="name")
-    if _func is None:
-        return tool_decorator
-    else:
-        return tool_decorator(_func)
-
-def tool_decorator_with_name(tool_name):
-    def wrapper(func):
-        decorated_func = tool(tool_name)(func)
-        @functools.wraps(func)
-        def inner(*args, **kwargs):
-            return decorated_func(*args, **kwargs)
-        return inner
-    return wrapper
+	if _func is None:
+		# Called as @pulse_tool() or @pulse_tool(name="...")
+		return decorator
+	elif isinstance(_func, str):
+		# Called as @pulse_tool("name") - this is actually the old pattern
+		# We should handle this for backward compatibility
+		def wrapper(func):
+			tool_name = _func
+			decorated_func = tool(tool_name)(func)
+			return decorated_func
+		return wrapper
+	else:
+		# Called as @pulse_tool (without parentheses)
+		return decorator(_func)
 
 def agent_decorator_with_name(agent_name):
 	def wrapper(func):
@@ -295,62 +289,80 @@ def add_session_id_to_span_attributes(kwargs):
         Traceloop.set_association_properties(properties)
         print("[pulse_agent] No singlestore-session-id found in baggage.")
 
-def pulse_agent(_func=None, name=None):
-	"""
-	A decorator that integrates with the SingleStore Pulse agent to associate
-	session IDs with function calls for tracing purposes. It extracts the 
-	session ID from the `baggage` header if available, or generates a random 
-	session ID if not. The session ID is then set as an association property 
-	for tracing.
-
-	Args:
-		_func (callable, optional): The function to be decorated. Defaults to None.
-		name (str, optional): The name to be used for the agent. If not provided, 
-			it defaults to the value of the `SINGLESTOREDB_APP_NAME` environment variable.
-
-	Returns:
-		callable: The wrapped function with tracing capabilities.
-
-	Notes:
-		- If a session ID is found in the `baggage` header, it is used for tracing.
-		- If no session ID is found, a random session ID is generated.
-		- The `Traceloop.set_association_properties` method is used to set the 
-		  session ID as an association property.
-		- The `agent` function is used to wrap the original function with the 
-		  resolved name.
-
-	Example:
-		@pulse_agent(name="my_app")
-		def my_function(headers):
-			# Function logic here
-			pass
-			
-		@pulse_agent
-		def my_function(headers):
-			# Function logic here
-			pass
-			
-		@pulse_agent("my_app")
-		def my_function(headers):
-			# Function logic here
-			pass
-	"""
-
-	def agent_decorator(func):
-		agent_name = name or func.__name__
-		decorated_func = agent(agent_name)(func)
-		@functools.wraps(func)
-		def wrapper(*args, **kwargs):
-			add_session_id_to_span_attributes(kwargs)
-			return decorated_func(*args, **kwargs)
-		return wrapper
-
-	if isinstance(_func, str):
-		return agent_decorator_with_name(_func)
-	if _func is None:
-		return agent_decorator
-	else:
-		return agent_decorator(_func)
+def pulse_agent(_func=None, *, name=None):
+    """
+    A decorator that integrates with the SingleStore Pulse agent to associate
+    session IDs with function calls for tracing purposes. It extracts the
+    session ID from the `baggage` header if available, or generates a random
+    session ID if not. The session ID is then set as an association property
+    for tracing.
+    
+    Args:
+        _func (callable, optional): The function to be decorated. Defaults to None.
+        name (str, optional): The name to be used for the agent. If not provided,
+            it defaults to the function name.
+    
+    Returns:
+        callable: The wrapped function with tracing capabilities.
+    
+    Notes:
+        - If a session ID is found in the `baggage` header, it is used for tracing.
+        - If no session ID is found, a random session ID is generated.
+        - The `Traceloop.set_association_properties` method is used to set the
+          session ID as an association property.
+        - The `agent` function is used to wrap the original function with the
+          resolved name.
+    
+    Example:
+        @pulse_agent(name="my_app")
+        def my_function(headers):
+            # Function logic here
+            pass
+        
+        @pulse_agent
+        def my_function(headers):
+            # Function logic here
+            pass
+        
+        # Works with other decorators:
+        @pulse_agent(name="my_app")
+        @retry(stop=stop_after_attempt(3))
+        def my_function(headers):
+            # Function logic here
+            pass
+    """
+    def decorator(func):
+        # Use the provided name or fall back to the function's name
+        agent_name = name or func.__name__
+        
+        # Apply the agent decorator to the function
+        decorated_func = agent(agent_name)(func)
+        
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            add_session_id_to_span_attributes(kwargs)
+            return decorated_func(*args, **kwargs)
+        
+        return wrapper
+    
+    if _func is None:
+        # Called as @pulse_agent() or @pulse_agent(name="...")
+        return decorator
+    elif isinstance(_func, str):
+        # Called as @pulse_agent("name") - backward compatibility
+        def wrapper(func):
+            agent_name = _func
+            decorated_func = agent(agent_name)(func)
+            
+            @functools.wraps(func)
+            def inner(*args, **kwargs):
+                add_session_id_to_span_attributes(kwargs)
+                return decorated_func(*args, **kwargs)
+            return inner
+        return wrapper
+    else:
+        # Called as @pulse_agent (without parentheses)
+        return decorator(_func)
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):

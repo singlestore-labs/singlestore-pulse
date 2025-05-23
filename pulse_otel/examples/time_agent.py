@@ -10,6 +10,7 @@ from opentelemetry.sdk._logs import LoggingHandler
 from pulse_otel import Pulse, pulse_agent, pulse_tool
 
 import logging
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 logger = logging.getLogger("myapp")
 logger.setLevel(logging.DEBUG)
@@ -82,6 +83,7 @@ def get_current_date():
     return datetime.datetime.now().strftime("%Y-%m-%d")
 
 # Define a new tool: a function to get the current time with a funny phrase
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 @pulse_tool("toolB")
 def get_funny_current_time(funny_phrase):
     logger.critical("CRITICAL LOGS of get_funny_current_time")
@@ -99,6 +101,7 @@ def get_funny_timestamp_phrase(funny_timestamp):
     return f"Here is a funny timestamp: {funny_timestamp}"
     
 # Simple agent function to process user input and decide on tool use
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 @pulse_agent(name="MyAgentName")
 def agent_run(prompt):
     messages = [{"role": "user", "content": prompt}]
