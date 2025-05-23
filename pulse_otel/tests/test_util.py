@@ -135,12 +135,6 @@ def test_get_environ_vars_positive_all_set():
         "singlestore.nova.app.name": "NameAllSet",
         "singlestore.is.agent": "false",
     }
-    print("*********")
-    print(get_environ_vars())
-    print("*********")
-    print("555555555555")
-    print(expected_output)
-    print("555555555555")
     assert get_environ_vars() == expected_output
 
 # --- Tests for form_otel_collector_endpoint ---
