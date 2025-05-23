@@ -2,7 +2,8 @@ import os
 from pulse_otel.consts import (
     OTEL_COLLECTOR_ENDPOINT,
     DEFAULT_ENV_VARIABLES,
-    ENV_VARIABLES_MAPPING
+    ENV_VARIABLES_MAPPING,
+    HEADER_INCOMING_SESSION_ID,
 )
 
 
@@ -72,3 +73,35 @@ def form_otel_collector_endpoint(
 
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
+
+def extract_session_id(kwargs):
+        """
+        Extracts the session ID from the 'baggage' header in the provided kwargs.
+
+        Args:
+            kwargs (dict): A dictionary that may contain a 'headers' key with HTTP headers.
+
+        Returns:
+            str or None: The extracted session ID if found, otherwise None.
+
+        Notes:
+            - The function looks for a 'baggage' header in the 'headers' dictionary.
+            - It parses the 'baggage' header for a key matching HEADER_INCOMING_SESSION_ID.
+            - If an error occurs during extraction, it prints an error message and returns None.
+        """
+        session_id = None
+        try:
+            if 'headers' in kwargs:
+                headers = kwargs['headers']
+                baggage = headers.get('baggage')
+                if baggage:
+                    parts = [item.strip() for item in baggage.split(',')]
+                    for part in parts:
+                        if '=' in part:
+                            key, value = part.split('=', 1)
+                            if key.strip() == HEADER_INCOMING_SESSION_ID:
+                                session_id = value.strip()
+                                break
+        except Exception as e:
+            print(f"Error extracting session ID: {e}")
+        return session_id
