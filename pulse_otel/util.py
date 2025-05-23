@@ -18,7 +18,7 @@ def get_environ_vars():
         {
             "singlestore.organization": "",
             "singlestore.project": "",
-            "session.id": "",
+            "singlestore.notebooks.server.id": "",
             "singlestore.hostname": "",
             "singlestore.workload.type": "NotebookCodeService",
             "singlestore.nova.app.base.path": "",

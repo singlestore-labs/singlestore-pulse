@@ -1,149 +1,1677 @@
 {
-    "name": "openai.chat",
-    "context": {
-        "trace_id": "0x4ee33d443eb995bd84f9c9e4fa40466e",
-        "span_id": "0x62456af651ea9b38",
-        "trace_state": "[]"
-    },
-    "kind": "SpanKind.CLIENT",
-    "parent_id": "0x18fcee77d9182d81",
-    "start_time": "2025-05-09T17:51:58.220379Z",
-    "end_time": "2025-05-09T17:52:01.329190Z",
-    "status": {
-        "status_code": "UNSET"
-    },
-    "attributes": {
-        "llm.request.type": "chat",
-        "traceloop.workflow.name": "Myagent",
-        "traceloop.association.properties.session.id": "7126782417549399",
-        "gen_ai.system": "OpenAI",
-        "gen_ai.request.model": "Qwen/Qwen2.5-7B-Instruct",
-        "llm.headers": "{'X-Session-ID': 'session_id'}",
-        "llm.is_streaming": false,
-        "gen_ai.openai.api_base": "https://apps.aws-virginia-nb2.svc.singlestore.com:8000/modelasaservice/34003ccb-470d-4605-8afb-c699e69adb9d/v1/",
-        "gen_ai.prompt.0.role": "user",
-        "gen_ai.prompt.0.content": "What time is it? Make it funny!",
-        "llm.request.functions.0.name": "get_current_time",
-        "llm.request.functions.0.description": "Get the current time in HH:MM:SS format",
-        "llm.request.functions.0.parameters": "{}",
-        "llm.request.functions.1.name": "get_current_date",
-        "llm.request.functions.1.description": "Get the current date in YYYY-MM-DD format",
-        "llm.request.functions.1.parameters": "{}",
-        "llm.request.functions.2.name": "get_funny_current_time",
-        "llm.request.functions.2.description": "Get the current time in HH:MM:SS format with a funny phrase",
-        "llm.request.functions.2.parameters": "{\"type\": \"object\", \"properties\": {\"funny_phrase\": {\"type\": \"string\", \"description\": \"A humorous phrase to include with the time\"}}, \"required\": [\"funny_phrase\"]}",
-        "gen_ai.response.model": "Qwen/Qwen2.5-7B-Instruct",
-        "gen_ai.response.id": "chatcmpl-624036ebea3f45a3a40733b91183e5df",
-        "llm.usage.total_tokens": 316,
-        "gen_ai.usage.completion_tokens": 39,
-        "gen_ai.usage.prompt_tokens": 277,
-        "gen_ai.completion.0.finish_reason": "tool_calls",
-        "gen_ai.completion.0.role": "assistant",
-        "gen_ai.completion.0.tool_calls.0.id": "chatcmpl-tool-435ae10e2922401f9ae5ad1b1166056d",
-        "gen_ai.completion.0.tool_calls.0.name": "get_funny_current_time",
-        "gen_ai.completion.0.tool_calls.0.arguments": "{\"funny_phrase\": \"according to the clock on my desk, it's time to get silly!\"}"
-    },
-    "events": [],
-    "links": [],
-    "resource": {
-        "attributes": {
-            "singlestore.organization": "",
-            "singlestore.project": "",
-            "session.id": "",
-            "singlestore.hostname": "",
-            "singlestore.workload.type": "NotebookCodeService",
-            "singlestore.nova.app.base.path": "",
-            "singlestore.nova.app.base.url": "",
-            "singlestore.nova.app.type": "AGENT",
-            "singlestore.nova.app.id": "123456789",
-            "singlestore.nova.app.name": "MY_APP_NAME",
-            "singlestore.is.agent": "true",
-            "service.name": "pulse_otel/examples/time_agent.py"
-        },
-        "schema_url": ""
-    }
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "opentelemetry.instrumentation.openai.v1",
+                        "version": "0.40.2"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "bcf685bb083748f3dd558b076f605b20",
+                            "spanId": "e3a26c83b9860311",
+                            "parentSpanId": "ec668498ec0f4788",
+                            "flags": 256,
+                            "name": "openai.chat",
+                            "kind": 3,
+                            "startTimeUnixNano": "1747990793573270578",
+                            "endTimeUnixNano": "1747990795585329986",
+                            "attributes": [
+                                {
+                                    "key": "llm.request.type",
+                                    "value": {
+                                        "stringValue": "chat"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.system",
+                                    "value": {
+                                        "stringValue": "OpenAI"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.request.model",
+                                    "value": {
+                                        "stringValue": "Qwen/Qwen2.5-7B-Instruct"
+                                    }
+                                },
+                                {
+                                    "key": "llm.headers",
+                                    "value": {
+                                        "stringValue": "{'X-Session-ID': 'session_id'}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.is_streaming",
+                                    "value": {
+                                        "boolValue": false
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.openai.api_base",
+                                    "value": {
+                                        "stringValue": "https://ai.aws-virginia-nb2.svc.singlestore.com/e003a14c-b9a6-4630-811c-0a13e04a568b/v1/"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.prompt.0.role",
+                                    "value": {
+                                        "stringValue": "user"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.prompt.0.content",
+                                    "value": {
+                                        "stringValue": "What time is it?"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.name",
+                                    "value": {
+                                        "stringValue": "get_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.description",
+                                    "value": {
+                                        "stringValue": "Get the current time in HH:MM:SS format"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.parameters",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.name",
+                                    "value": {
+                                        "stringValue": "get_current_date"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.description",
+                                    "value": {
+                                        "stringValue": "Get the current date in YYYY-MM-DD format"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.parameters",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.name",
+                                    "value": {
+                                        "stringValue": "get_funny_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.description",
+                                    "value": {
+                                        "stringValue": "Get the current time in HH:MM:SS format with a funny phrase"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.parameters",
+                                    "value": {
+                                        "stringValue": "{\"type\": \"object\", \"properties\": {\"funny_phrase\": {\"type\": \"string\", \"description\": \"A humorous phrase to include with the time\"}}, \"required\": [\"funny_phrase\"]}"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.response.model",
+                                    "value": {
+                                        "stringValue": "Qwen/Qwen2.5-7B-Instruct"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.response.id",
+                                    "value": {
+                                        "stringValue": "chatcmpl-dcaea695e7d54881a85e96019898d6cb"
+                                    }
+                                },
+                                {
+                                    "key": "llm.usage.total_tokens",
+                                    "value": {
+                                        "intValue": "290"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.usage.completion_tokens",
+                                    "value": {
+                                        "intValue": "17"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.usage.prompt_tokens",
+                                    "value": {
+                                        "intValue": "273"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.finish_reason",
+                                    "value": {
+                                        "stringValue": "tool_calls"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.role",
+                                    "value": {
+                                        "stringValue": "assistant"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.id",
+                                    "value": {
+                                        "stringValue": "chatcmpl-tool-7f3e04cd9e5044f49436ddb16fa4c718"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.name",
+                                    "value": {
+                                        "stringValue": "get_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.arguments",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
 }
 {
-    "name": "toolC.tool",
-    "context": {
-        "trace_id": "0x4ee33d443eb995bd84f9c9e4fa40466e",
-        "span_id": "0x7fde55e6c1229b0a",
-        "trace_state": "[]"
-    },
-    "kind": "SpanKind.INTERNAL",
-    "parent_id": "0x18fcee77d9182d81",
-    "start_time": "2025-05-09T17:52:01.329656Z",
-    "end_time": "2025-05-09T17:52:01.329960Z",
-    "status": {
-        "status_code": "UNSET"
-    },
-    "attributes": {
-        "traceloop.workflow.name": "Myagent",
-        "traceloop.association.properties.session.id": "7126782417549399",
-        "traceloop.span.kind": "tool",
-        "traceloop.entity.name": "toolC",
-        "traceloop.entity.input": "{\"args\": [\"according to the clock on my desk, it's time to get silly!\"], \"kwargs\": {}}",
-        "traceloop.entity.output": "\"Here is a funny timestamp: according to the clock on my desk, it's time to get silly!! The time is 23:22:01\""
-    },
-    "events": [],
-    "links": [],
-    "resource": {
-        "attributes": {
-            "singlestore.organization": "",
-            "singlestore.project": "",
-            "session.id": "",
-            "singlestore.hostname": "",
-            "singlestore.workload.type": "NotebookCodeService",
-            "singlestore.nova.app.base.path": "",
-            "singlestore.nova.app.base.url": "",
-            "singlestore.nova.app.type": "AGENT",
-            "singlestore.nova.app.id": "123456789",
-            "singlestore.nova.app.name": "MY_APP_NAME",
-            "singlestore.is.agent": "true",
-            "service.name": "pulse_otel/examples/time_agent.py"
-        },
-        "schema_url": ""
-    }
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "traceloop.tracer"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "bcf685bb083748f3dd558b076f605b20",
+                            "spanId": "ed2fb8faba155281",
+                            "parentSpanId": "ec668498ec0f4788",
+                            "flags": 256,
+                            "name": "toolB.tool",
+                            "kind": 1,
+                            "startTimeUnixNano": "1747990795589078583",
+                            "endTimeUnixNano": "1747990795589419414",
+                            "attributes": [
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.span.kind",
+                                    "value": {
+                                        "stringValue": "tool"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.name",
+                                    "value": {
+                                        "stringValue": "toolB"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.input",
+                                    "value": {
+                                        "stringValue": "{\"args\": [], \"kwargs\": {}}"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.output",
+                                    "value": {
+                                        "stringValue": "\"14:29:55\""
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
 }
 {
-    "name": "Myagent.agent",
-    "context": {
-        "trace_id": "0x4ee33d443eb995bd84f9c9e4fa40466e",
-        "span_id": "0x18fcee77d9182d81",
-        "trace_state": "[]"
-    },
-    "kind": "SpanKind.INTERNAL",
-    "parent_id": null,
-    "start_time": "2025-05-09T17:51:58.188243Z",
-    "end_time": "2025-05-09T17:52:01.330112Z",
-    "status": {
-        "status_code": "UNSET"
-    },
-    "attributes": {
-        "traceloop.workflow.name": "Myagent",
-        "traceloop.association.properties.session.id": "7126782417549399",
-        "traceloop.span.kind": "agent",
-        "traceloop.entity.name": "Myagent",
-        "traceloop.entity.input": "{\"args\": [\"What time is it? Make it funny!\"], \"kwargs\": {}}",
-        "traceloop.entity.output": "\"Here is a funny timestamp: according to the clock on my desk, it's time to get silly!! The time is 23:22:01\""
-    },
-    "events": [],
-    "links": [],
-    "resource": {
-        "attributes": {
-            "singlestore.organization": "",
-            "singlestore.project": "",
-            "session.id": "",
-            "singlestore.hostname": "",
-            "singlestore.workload.type": "NotebookCodeService",
-            "singlestore.nova.app.base.path": "",
-            "singlestore.nova.app.base.url": "",
-            "singlestore.nova.app.type": "AGENT",
-            "singlestore.nova.app.id": "123456789",
-            "singlestore.nova.app.name": "MY_APP_NAME",
-            "singlestore.is.agent": "true",
-            "service.name": "pulse_otel/examples/time_agent.py"
-        },
-        "schema_url": ""
-    }
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "traceloop.tracer"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "bcf685bb083748f3dd558b076f605b20",
+                            "spanId": "ec668498ec0f4788",
+                            "parentSpanId": "",
+                            "flags": 256,
+                            "name": "Myagent.agent",
+                            "kind": 1,
+                            "startTimeUnixNano": "1747990793543880914",
+                            "endTimeUnixNano": "1747990795590427268",
+                            "attributes": [
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.span.kind",
+                                    "value": {
+                                        "stringValue": "agent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.input",
+                                    "value": {
+                                        "stringValue": "{\"args\": [\"What time is it?\"], \"kwargs\": {}}"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.output",
+                                    "value": {
+                                        "stringValue": "\"14:29:55\""
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "opentelemetry.instrumentation.openai.v1",
+                        "version": "0.40.2"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "6f2a7e17c70cf3dda1af336e9aa65160",
+                            "spanId": "255c0d5b079529bd",
+                            "parentSpanId": "4e884325f4e9bf8a",
+                            "flags": 256,
+                            "name": "openai.chat",
+                            "kind": 3,
+                            "startTimeUnixNano": "1747990795610485677",
+                            "endTimeUnixNano": "1747990797466996565",
+                            "attributes": [
+                                {
+                                    "key": "llm.request.type",
+                                    "value": {
+                                        "stringValue": "chat"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.system",
+                                    "value": {
+                                        "stringValue": "OpenAI"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.request.model",
+                                    "value": {
+                                        "stringValue": "Qwen/Qwen2.5-7B-Instruct"
+                                    }
+                                },
+                                {
+                                    "key": "llm.headers",
+                                    "value": {
+                                        "stringValue": "{'X-Session-ID': 'session_id'}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.is_streaming",
+                                    "value": {
+                                        "boolValue": false
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.openai.api_base",
+                                    "value": {
+                                        "stringValue": "https://ai.aws-virginia-nb2.svc.singlestore.com/e003a14c-b9a6-4630-811c-0a13e04a568b/v1/"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.prompt.0.role",
+                                    "value": {
+                                        "stringValue": "user"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.prompt.0.content",
+                                    "value": {
+                                        "stringValue": "What date is it?"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.name",
+                                    "value": {
+                                        "stringValue": "get_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.description",
+                                    "value": {
+                                        "stringValue": "Get the current time in HH:MM:SS format"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.parameters",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.name",
+                                    "value": {
+                                        "stringValue": "get_current_date"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.description",
+                                    "value": {
+                                        "stringValue": "Get the current date in YYYY-MM-DD format"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.parameters",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.name",
+                                    "value": {
+                                        "stringValue": "get_funny_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.description",
+                                    "value": {
+                                        "stringValue": "Get the current time in HH:MM:SS format with a funny phrase"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.parameters",
+                                    "value": {
+                                        "stringValue": "{\"type\": \"object\", \"properties\": {\"funny_phrase\": {\"type\": \"string\", \"description\": \"A humorous phrase to include with the time\"}}, \"required\": [\"funny_phrase\"]}"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.response.model",
+                                    "value": {
+                                        "stringValue": "Qwen/Qwen2.5-7B-Instruct"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.response.id",
+                                    "value": {
+                                        "stringValue": "chatcmpl-a0196c07a250469f9cac50d6f4044e0a"
+                                    }
+                                },
+                                {
+                                    "key": "llm.usage.total_tokens",
+                                    "value": {
+                                        "intValue": "290"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.usage.completion_tokens",
+                                    "value": {
+                                        "intValue": "17"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.usage.prompt_tokens",
+                                    "value": {
+                                        "intValue": "273"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.finish_reason",
+                                    "value": {
+                                        "stringValue": "tool_calls"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.role",
+                                    "value": {
+                                        "stringValue": "assistant"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.id",
+                                    "value": {
+                                        "stringValue": "chatcmpl-tool-81d0cfbc8183476186dc645664c429f9"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.name",
+                                    "value": {
+                                        "stringValue": "get_current_date"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.arguments",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "traceloop.tracer"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "6f2a7e17c70cf3dda1af336e9aa65160",
+                            "spanId": "cf7576fa33ed6731",
+                            "parentSpanId": "4e884325f4e9bf8a",
+                            "flags": 256,
+                            "name": "toolA.tool",
+                            "kind": 1,
+                            "startTimeUnixNano": "1747990797469433748",
+                            "endTimeUnixNano": "1747990797469721428",
+                            "attributes": [
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.span.kind",
+                                    "value": {
+                                        "stringValue": "tool"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.name",
+                                    "value": {
+                                        "stringValue": "toolA"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.input",
+                                    "value": {
+                                        "stringValue": "{\"args\": [], \"kwargs\": {}}"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.output",
+                                    "value": {
+                                        "stringValue": "\"2025-05-23\""
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "traceloop.tracer"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "6f2a7e17c70cf3dda1af336e9aa65160",
+                            "spanId": "4e884325f4e9bf8a",
+                            "parentSpanId": "",
+                            "flags": 256,
+                            "name": "Myagent.agent",
+                            "kind": 1,
+                            "startTimeUnixNano": "1747990795591385718",
+                            "endTimeUnixNano": "1747990797470754019",
+                            "attributes": [
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.span.kind",
+                                    "value": {
+                                        "stringValue": "agent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.input",
+                                    "value": {
+                                        "stringValue": "{\"args\": [\"What date is it?\"], \"kwargs\": {}}"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.output",
+                                    "value": {
+                                        "stringValue": "\"2025-05-23\""
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "opentelemetry.instrumentation.openai.v1",
+                        "version": "0.40.2"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "bf364a87f633df0aa45585d66a61d5ff",
+                            "spanId": "7dc4f7bd33601098",
+                            "parentSpanId": "413f5e78fd2a8b39",
+                            "flags": 256,
+                            "name": "openai.chat",
+                            "kind": 3,
+                            "startTimeUnixNano": "1747990797488396686",
+                            "endTimeUnixNano": "1747990800122934926",
+                            "attributes": [
+                                {
+                                    "key": "llm.request.type",
+                                    "value": {
+                                        "stringValue": "chat"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.system",
+                                    "value": {
+                                        "stringValue": "OpenAI"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.request.model",
+                                    "value": {
+                                        "stringValue": "Qwen/Qwen2.5-7B-Instruct"
+                                    }
+                                },
+                                {
+                                    "key": "llm.headers",
+                                    "value": {
+                                        "stringValue": "{'X-Session-ID': 'session_id'}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.is_streaming",
+                                    "value": {
+                                        "boolValue": false
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.openai.api_base",
+                                    "value": {
+                                        "stringValue": "https://ai.aws-virginia-nb2.svc.singlestore.com/e003a14c-b9a6-4630-811c-0a13e04a568b/v1/"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.prompt.0.role",
+                                    "value": {
+                                        "stringValue": "user"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.prompt.0.content",
+                                    "value": {
+                                        "stringValue": "What time is it? Make it funny!"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.name",
+                                    "value": {
+                                        "stringValue": "get_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.description",
+                                    "value": {
+                                        "stringValue": "Get the current time in HH:MM:SS format"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.0.parameters",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.name",
+                                    "value": {
+                                        "stringValue": "get_current_date"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.description",
+                                    "value": {
+                                        "stringValue": "Get the current date in YYYY-MM-DD format"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.1.parameters",
+                                    "value": {
+                                        "stringValue": "{}"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.name",
+                                    "value": {
+                                        "stringValue": "get_funny_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.description",
+                                    "value": {
+                                        "stringValue": "Get the current time in HH:MM:SS format with a funny phrase"
+                                    }
+                                },
+                                {
+                                    "key": "llm.request.functions.2.parameters",
+                                    "value": {
+                                        "stringValue": "{\"type\": \"object\", \"properties\": {\"funny_phrase\": {\"type\": \"string\", \"description\": \"A humorous phrase to include with the time\"}}, \"required\": [\"funny_phrase\"]}"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.response.model",
+                                    "value": {
+                                        "stringValue": "Qwen/Qwen2.5-7B-Instruct"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.response.id",
+                                    "value": {
+                                        "stringValue": "chatcmpl-858c2701253d477782fb9de6f2a38c46"
+                                    }
+                                },
+                                {
+                                    "key": "llm.usage.total_tokens",
+                                    "value": {
+                                        "intValue": "308"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.usage.completion_tokens",
+                                    "value": {
+                                        "intValue": "31"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.usage.prompt_tokens",
+                                    "value": {
+                                        "intValue": "277"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.finish_reason",
+                                    "value": {
+                                        "stringValue": "tool_calls"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.role",
+                                    "value": {
+                                        "stringValue": "assistant"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.id",
+                                    "value": {
+                                        "stringValue": "chatcmpl-tool-ba5d5a0018d14727b1e1189db5c7b059"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.name",
+                                    "value": {
+                                        "stringValue": "get_funny_current_time"
+                                    }
+                                },
+                                {
+                                    "key": "gen_ai.completion.0.tool_calls.0.arguments",
+                                    "value": {
+                                        "stringValue": "{\"funny_phrase\": \"according to my fancy digital wristband\"}"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "traceloop.tracer"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "bf364a87f633df0aa45585d66a61d5ff",
+                            "spanId": "63e19adf95a24686",
+                            "parentSpanId": "413f5e78fd2a8b39",
+                            "flags": 256,
+                            "name": "toolC.tool",
+                            "kind": 1,
+                            "startTimeUnixNano": "1747990800124588644",
+                            "endTimeUnixNano": "1747990800124853610",
+                            "attributes": [
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.span.kind",
+                                    "value": {
+                                        "stringValue": "tool"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.name",
+                                    "value": {
+                                        "stringValue": "toolC"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.input",
+                                    "value": {
+                                        "stringValue": "{\"args\": [\"according to my fancy digital wristband\"], \"kwargs\": {}}"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.output",
+                                    "value": {
+                                        "stringValue": "\"Here is a funny timestamp: according to my fancy digital wristband! The time is 14:30:00\""
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "singlestore.organization",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.project",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.notebooks.server.id",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.hostname",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.workload.type",
+                        "value": {
+                            "stringValue": "NotebookCodeService"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.path",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.base.url",
+                        "value": {
+                            "stringValue": ""
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.type",
+                        "value": {
+                            "stringValue": "AGENT"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.id",
+                        "value": {
+                            "stringValue": "123456789"
+                        }
+                    },
+                    {
+                        "key": "singlestore.nova.app.name",
+                        "value": {
+                            "stringValue": "MY_APP_NAME"
+                        }
+                    },
+                    {
+                        "key": "singlestore.is.agent",
+                        "value": {
+                            "stringValue": "true"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "pulse_otel/examples/time_agent.py"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "traceloop.tracer"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "bf364a87f633df0aa45585d66a61d5ff",
+                            "spanId": "413f5e78fd2a8b39",
+                            "parentSpanId": "",
+                            "flags": 256,
+                            "name": "Myagent.agent",
+                            "kind": 1,
+                            "startTimeUnixNano": "1747990797471723911",
+                            "endTimeUnixNano": "1747990800125699775",
+                            "attributes": [
+                                {
+                                    "key": "traceloop.workflow.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.association.properties.session.id",
+                                    "value": {
+                                        "stringValue": "4388658208393555"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.span.kind",
+                                    "value": {
+                                        "stringValue": "agent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.name",
+                                    "value": {
+                                        "stringValue": "Myagent"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.input",
+                                    "value": {
+                                        "stringValue": "{\"args\": [\"What time is it? Make it funny!\"], \"kwargs\": {}}"
+                                    }
+                                },
+                                {
+                                    "key": "traceloop.entity.output",
+                                    "value": {
+                                        "stringValue": "\"Here is a funny timestamp: according to my fancy digital wristband! The time is 14:30:00\""
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
 }
