@@ -2,7 +2,7 @@ import functools
 import os
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _logs, trace
+from opentelemetry import _logs
 
 from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
@@ -260,7 +260,6 @@ def pulse_agent(func):
 		Callable: The wrapped function with additional functionality for handling
 		`singlestore-session-id` and associating it with Traceloop properties.
 	"""
-
 	@functools.wraps(func)
 	def wrapped(*args, **kwargs):
 		session_id = None

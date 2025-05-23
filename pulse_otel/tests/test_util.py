@@ -14,7 +14,7 @@ def test_format_env_variables_positive_all_mapped():
     input_vars = {
         "SINGLESTOREDB_ORGANIZATION": "org1",
         "SINGLESTOREDB_PROJECT": "proj1",
-        "HTTP_NOTEBOOKSSERVERID": "session123",
+        "HTTP_NOTEBOOKSSERVERID": "8ab506eb-ff38-4302-87bc-d9c421dada6f",
         "HOSTNAME": "host1",
         "SINGLESTOREDB_WORKLOAD_TYPE": "TestType",
         "SINGLESTOREDB_APP_BASE_PATH": "/path/to/app",
@@ -27,7 +27,7 @@ def test_format_env_variables_positive_all_mapped():
     expected_output = {
         "singlestore.organization": "org1",
         "singlestore.project": "proj1",
-        "session.id": "session123",
+        "singlestore.notebooks.server.id": "8ab506eb-ff38-4302-87bc-d9c421dada6f",
         "singlestore.hostname": "host1",
         "singlestore.workload.type": "TestType",
         "singlestore.nova.app.base.path": "/path/to/app",
@@ -84,7 +84,7 @@ def test_get_environ_vars_positive_all_defaults():
 @patch.dict(os.environ, {
     "SINGLESTOREDB_ORGANIZATION": "my_org",
     "SINGLESTOREDB_PROJECT": "my_project",
-    "HTTP_NOTEBOOKSSERVERID": "my_session",
+    "HTTP_NOTEBOOKSSERVERID": "8ab506eb-ff38-4302-87bc-d9c421dada6f",
     "HOSTNAME": "my_host",
     # Other variables will use defaults from DEFAULT_ENV_VARIABLES
 }, clear=True)
@@ -94,7 +94,7 @@ def test_get_environ_vars_positive_some_set():
     expected_output = {
         "singlestore.organization": "my_org",
         "singlestore.project": "my_project",
-        "session.id": "my_session",
+        "singlestore.notebooks.server.id": "8ab506eb-ff38-4302-87bc-d9c421dada6f",
         "singlestore.hostname": "my_host",
         "singlestore.workload.type": DEFAULT_ENV_VARIABLES["SINGLESTOREDB_WORKLOAD_TYPE"],
         "singlestore.nova.app.base.path": DEFAULT_ENV_VARIABLES["SINGLESTOREDB_APP_BASE_PATH"],
@@ -110,7 +110,7 @@ def test_get_environ_vars_positive_some_set():
 @patch.dict(os.environ, {
     "SINGLESTOREDB_ORGANIZATION": "org_all_set",
     "SINGLESTOREDB_PROJECT": "proj_all_set",
-    "HTTP_NOTEBOOKSSERVERID": "session_all_set",
+    "HTTP_NOTEBOOKSSERVERID": "8ab506eb-ff38-4302-87bc-d9c421dada6f",
     "HOSTNAME": "host_all_set",
     "SINGLESTOREDB_WORKLOAD_TYPE": "TypeAllSet",
     "SINGLESTOREDB_APP_BASE_PATH": "/all/set",
@@ -125,7 +125,7 @@ def test_get_environ_vars_positive_all_set():
     expected_output = {
         "singlestore.organization": "org_all_set",
         "singlestore.project": "proj_all_set",
-        "session.id": "session_all_set",
+        "singlestore.notebooks.server.id": "8ab506eb-ff38-4302-87bc-d9c421dada6f",
         "singlestore.hostname": "host_all_set",
         "singlestore.workload.type": "TypeAllSet",
         "singlestore.nova.app.base.path": "/all/set",
@@ -135,6 +135,12 @@ def test_get_environ_vars_positive_all_set():
         "singlestore.nova.app.name": "NameAllSet",
         "singlestore.is.agent": "false",
     }
+    print("*********")
+    print(get_environ_vars())
+    print("*********")
+    print("555555555555")
+    print(expected_output)
+    print("555555555555")
     assert get_environ_vars() == expected_output
 
 # --- Tests for form_otel_collector_endpoint ---
