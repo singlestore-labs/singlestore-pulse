@@ -267,16 +267,6 @@ def pulse_tool(_func=None, *, name=None):
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
-def agent_decorator_with_name(agent_name):
-	def wrapper(func):
-		decorated_func = agent(agent_name)(func)
-		@functools.wraps(func)
-		def inner(*args, **kwargs):
-			add_session_id_to_span_attributes(kwargs)
-			return decorated_func(*args, **kwargs)
-		return inner
-	return wrapper
-
 def add_session_id_to_span_attributes(kwargs):
     session_id = extract_session_id(kwargs)
     if session_id:
