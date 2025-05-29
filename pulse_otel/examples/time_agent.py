@@ -101,7 +101,7 @@ def get_funny_timestamp_phrase(funny_timestamp):
     return f"Here is a funny timestamp: {funny_timestamp}"
     
 # Simple agent function to process user input and decide on tool use
-# @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 @pulse_agent(name="MyAgentName")
 def agent_run(prompt):
     messages = [{"role": "user", "content": prompt}]
@@ -117,7 +117,7 @@ def agent_run(prompt):
         model=configs["model_name"],
         messages=messages,
         tools=tools,
-        tool_choice="none",
+        tool_choice="auto",
         extra_headers={"X-Session-ID" : "session_id"},
     )
     
