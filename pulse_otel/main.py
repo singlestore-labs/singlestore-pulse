@@ -77,13 +77,6 @@ class Pulse:
 
 		global _pulse_instance
 
-		# Store constructor arguments as instance variables to ensure they are accessed
-		self.write_to_file = write_to_file
-		self.write_to_traceloop = write_to_traceloop
-		self.api_key = api_key
-		self.otel_collector_endpoint = otel_collector_endpoint
-		self.only_live_logs = only_live_logs
-
 		if _pulse_instance is not None:
 			print("Pulse instance already exists. Skipping initialization.")
 			# Copy the existing instance's attributes to this instance
@@ -92,17 +85,17 @@ class Pulse:
 
 		try:
 			self.config = get_environ_vars()
-			if self.write_to_traceloop and self.api_key:
+			if write_to_traceloop and api_key:
 				log_exporter = self.init_log_provider()
 
 				Traceloop.init(
 					disable_batch=True,
 					resource_attributes=self.config,
-					api_key=self.api_key,
+					api_key=api_key,
 					logging_exporter=log_exporter,
 				)
 
-			elif self.write_to_file:
+			elif write_to_file:
 
 				log_exporter = self.init_log_provider()
 				Traceloop.init(
@@ -111,7 +104,7 @@ class Pulse:
 					resource_attributes=self.config,
 					logging_exporter=log_exporter,
 				)
-			elif self.only_live_logs:
+			elif only_live_logs:
 				# create json log exporter for live logs
 				jsonl_file_exporter = get_jsonl_file_exporter()
 				if jsonl_file_exporter is not None:
@@ -120,8 +113,6 @@ class Pulse:
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 					logging.basicConfig(level=logging.INFO, handlers=[LoggingHandler()])
 			else:
-
-				otel_collector_endpoint = self.otel_collector_endpoint
 				if otel_collector_endpoint is None:
 					try:
 						projectID = self.config[str(PROJECT)]
@@ -173,6 +164,7 @@ class Pulse:
 				)
 		except Exception as e:
 			print(f"Error initializing Pulse: {e}")
+		
 		# Set the global instance
 		_pulse_instance = self
 		print("Pulse initialized successfully.")
