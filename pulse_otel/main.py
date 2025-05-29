@@ -24,7 +24,12 @@ import logging
 from typing import Callable
 import typing
 
-from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint, extract_session_id
+from pulse_otel.util import (
+	get_environ_vars, 
+	form_otel_collector_endpoint, 
+	extract_session_id, 
+	_is_endpoint_reachable,
+	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
@@ -97,21 +102,26 @@ class Pulse:
 					except KeyError:
 						raise ValueError(f"Project ID '{PROJECT}' not found in configuration.")
 					otel_collector_endpoint = form_otel_collector_endpoint(projectID)
-
+				
 				"""
 					Use the provided OTLP collector endpoint
 					First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
 				"""
 				log_provider = LoggerProvider()
 				_logs.set_logger_provider(log_provider)
-				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
-				log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 				# create json log exporter for live logs
 				jsonl_file_exporter = get_jsonl_file_exporter()
 				if jsonl_file_exporter is not None:
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
+				if not _is_endpoint_reachable(otel_collector_endpoint):
+					print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+					return 
+				
+				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+				log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+				
 				"""
 					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
 				"""
