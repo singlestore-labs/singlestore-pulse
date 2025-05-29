@@ -1,4 +1,7 @@
 import os
+import socket
+from urllib.parse import urlparse
+
 from pulse_otel.consts import (
     OTEL_COLLECTOR_ENDPOINT,
     DEFAULT_ENV_VARIABLES,
@@ -105,3 +108,30 @@ def extract_session_id(kwargs):
         except Exception as e:
             print(f"Error extracting session ID: {e}")
         return session_id
+
+def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
+    if not endpoint_url:
+        print("Warning: OTel endpoint URL is empty. Assuming unreachable.")
+        return False
+    try:
+
+        parsed_url = urlparse(endpoint_url)
+        host = parsed_url.hostname
+        port = parsed_url.port
+
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (socket.error, ConnectionRefusedError, socket.timeout) as e:
+        # Define host/port for error message, using defaults if parsing failed before assignment.
+        error_host_str = host if 'host' in locals() and host is not None else "unknown (parsing error)"
+        # Port is expected to be 4317 if format is correct.
+        error_port_str = str(port) if 'port' in locals() and port is not None else "unknown (parsing error or not 4317)"
+        
+        print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}")
+        return False
+    except ValueError as e: # Handle potential errors from urlparse if URL is malformed
+        print(f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable.")
+        return False
+    except Exception as e: # Catch any other unexpected errors during the check
+        print(f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}")
+        return False

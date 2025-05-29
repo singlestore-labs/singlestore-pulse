@@ -24,7 +24,12 @@ import logging
 from typing import Callable
 import typing
 
-from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint, extract_session_id
+from pulse_otel.util import (
+	get_environ_vars, 
+	form_otel_collector_endpoint, 
+	extract_session_id, 
+	_is_endpoint_reachable,
+	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
@@ -98,6 +103,9 @@ class Pulse:
 						raise ValueError(f"Project ID '{PROJECT}' not found in configuration.")
 					otel_collector_endpoint = form_otel_collector_endpoint(projectID)
 
+				if not _is_endpoint_reachable(otel_collector_endpoint):
+					print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+					return 
 				"""
 					Use the provided OTLP collector endpoint
 					First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
