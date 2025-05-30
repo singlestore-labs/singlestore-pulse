@@ -388,6 +388,13 @@ def pulse_agent(_func=None, *, name=None):
 		# Called as @pulse_agent (without parentheses)
 		return decorator(_func)
 
+def healthcheck():
+	"""
+	Health check endpoint for the Pulse service.
+	Returns a JSON response indicating the service is healthy.
+	"""
+	return {"status": "healthy"}
+
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
         self.file_name = file_name
