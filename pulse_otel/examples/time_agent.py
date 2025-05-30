@@ -161,6 +161,12 @@ def main():
     result = agent_run(user_prompt)
     print(result)
     print("==========================")
+
+    # Trying to re-instantiate Pulse
+    _ = Pulse(
+        otel_collector_endpoint="http://localhost:4317",
+    )
+
     user_prompt = "What time is it? Make it funny!"
     result = agent_run(user_prompt)
     print(result)

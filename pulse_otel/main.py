@@ -40,8 +40,17 @@ from pulse_otel.consts import (
 )
 import logging
 
+_pulse_instance = None
+
 class Pulse:
-	def __init__(self, write_to_file: bool = False, write_to_traceloop: bool = False, api_key: str = None, otel_collector_endpoint: str = None, only_live_logs: bool = False):
+	def __init__(
+		self,
+		write_to_file: bool = False,
+		write_to_traceloop: bool = False,
+		api_key: str = None,
+		otel_collector_endpoint: str = None,
+		only_live_logs: bool = False,
+	):
 		"""
 		Initializes the main class with configuration for logging and tracing.
 
@@ -65,6 +74,15 @@ class Pulse:
 				- Initializes a custom log provider for file-based logging.
 				- Initializes Traceloop with a custom file span exporter and resource attributes.
 		"""
+
+		global _pulse_instance
+
+		if _pulse_instance is not None:
+			print("Pulse instance already exists. Skipping initialization.")
+			# Copy the existing instance's attributes to this instance
+			self.__dict__.update(_pulse_instance.__dict__)
+			return
+
 		try:
 			self.config = get_environ_vars()
 			if write_to_traceloop and api_key:
@@ -74,7 +92,7 @@ class Pulse:
 					disable_batch=True,
 					resource_attributes=self.config,
 					api_key=api_key,
-					logging_exporter=log_exporter
+					logging_exporter=log_exporter,
 				)
 
 			elif write_to_file:
@@ -84,8 +102,8 @@ class Pulse:
 					disable_batch=True,
 					exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
 					resource_attributes=self.config,
-					logging_exporter=log_exporter
-					)
+					logging_exporter=log_exporter,
+				)
 			elif only_live_logs:
 				# create json log exporter for live logs
 				jsonl_file_exporter = get_jsonl_file_exporter()
@@ -94,15 +112,14 @@ class Pulse:
 					_logs.set_logger_provider(log_provider)
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 					logging.basicConfig(level=logging.INFO, handlers=[LoggingHandler()])
-			else: 
-				
+			else:
 				if otel_collector_endpoint is None:
 					try:
 						projectID = self.config[str(PROJECT)]
 					except KeyError:
 						raise ValueError(f"Project ID '{PROJECT}' not found in configuration.")
 					otel_collector_endpoint = form_otel_collector_endpoint(projectID)
-				
+
 				"""
 					Use the provided OTLP collector endpoint
 					First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
@@ -117,11 +134,11 @@ class Pulse:
 
 				if not _is_endpoint_reachable(otel_collector_endpoint):
 					print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
-					return 
-				
+					return
+
 				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
 				log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
-				
+
 				"""
 					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
 				"""
@@ -143,11 +160,15 @@ class Pulse:
 					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,
 					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
-					telemetry_enabled=False
+					telemetry_enabled=False,
 				)
 		except Exception as e:
 			print(f"Error initializing Pulse: {e}")
-			
+		
+		# Set the global instance
+		_pulse_instance = self
+		print("Pulse initialized successfully.")
+
 	def enable_content_tracing(self, enabled: bool = True):
 		"""
 		Enables or disables content tracing by attaching a context variable.
@@ -158,7 +179,7 @@ class Pulse:
 			enabled (bool): A flag to enable or disable content tracing. Defaults to True.
 		"""
 		attach(set_value("override_enable_content_tracing", enabled))
-		
+
 	def init_log_provider(self):
 		"""
 		Initializes the log provider and sets up the logging configuration.
@@ -203,7 +224,6 @@ class Pulse:
 				return func(*args, **kwargs_inner)
 			return wrapper
 		return decorator
-
 
 	def add_traceid_header(self, func: Callable) -> Callable:
 		@wraps(func)
