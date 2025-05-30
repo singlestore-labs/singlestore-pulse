@@ -10,7 +10,10 @@ from pulse_otel.consts import (
     HEADER_INCOMING_SESSION_ID,
 )
 
+import logging
 
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 def get_environ_vars():
     """
@@ -78,6 +81,19 @@ def form_otel_collector_endpoint(
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
 
+def stringify_request(request: Request) -> str:
+    """
+    Converts FastAPI Request to a string summary.
+    """
+    try:
+        method = request.method
+        url = str(request.url)
+        headers = dict(request.headers)
+        headers_str = ", ".join(f"{k}={v}" for k, v in headers.items())
+        return f"Request(method={method}, url={url}, headers={{ {headers_str} }})"
+    except Exception as e:
+        return f"Error converting request to string: {e}"
+    
 def extract_session_id(kwargs):
         """
         Extracts the session ID from the 'baggage' header in the provided kwargs.
@@ -95,8 +111,10 @@ def extract_session_id(kwargs):
         """
         session_id = None
         try:
+            logger.info("Extracting session ID from baggage header.")
             request: Request = kwargs.get('request')
             if request:
+                logger.info(f"Request details: {stringify_request(request)}")
                 baggage = request.headers.get('baggage')
                 if baggage:
                     parts = [item.strip() for item in baggage.split(',')]
@@ -107,7 +125,7 @@ def extract_session_id(kwargs):
                                 session_id = value.strip()
                                 break
         except Exception as e:
-            print(f"Error extracting session ID: {e}")
+            logger.error(f"Error extracting session ID: {e}")
         return session_id
 
 def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:

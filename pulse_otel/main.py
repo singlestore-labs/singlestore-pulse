@@ -42,6 +42,10 @@ import logging
 
 _pulse_instance = None
 
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
 class Pulse:
 	def __init__(
 		self,
