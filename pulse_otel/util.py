@@ -1,6 +1,7 @@
 import os
 import socket
 from urllib.parse import urlparse
+from fastapi import Request
 
 from pulse_otel.consts import (
     OTEL_COLLECTOR_ENDPOINT,
@@ -94,9 +95,9 @@ def extract_session_id(kwargs):
         """
         session_id = None
         try:
-            if 'headers' in kwargs:
-                headers = kwargs['headers']
-                baggage = headers.get('baggage')
+            request: Request = kwargs.get('request')
+            if request:
+                baggage = request.headers.get('baggage')
                 if baggage:
                     parts = [item.strip() for item in baggage.split(',')]
                     for part in parts:
