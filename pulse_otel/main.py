@@ -373,7 +373,7 @@ def pulse_agent(_func=None, *, name=None):
         
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            add_session_id_to_span_attributes(kwargs)
+            add_session_id_to_span_attributes(**kwargs) # Unpack kwargs here
             return decorated_func(*args, **kwargs)
         
         return wrapper
@@ -389,7 +389,7 @@ def pulse_agent(_func=None, *, name=None):
             
             @functools.wraps(func)
             def inner(*args, **kwargs):
-                add_session_id_to_span_attributes(kwargs)
+                add_session_id_to_span_attributes(**kwargs) # Unpack kwargs here as well for consistency
                 return decorated_func(*args, **kwargs)
             return inner
         return wrapper
