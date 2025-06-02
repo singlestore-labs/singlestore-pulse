@@ -111,10 +111,10 @@ def extract_session_id(kwargs):
         """
         session_id = None
         try:
-            logger.info("Extracting session ID from baggage header.")
+            print("Extracting session ID from baggage header.")
             request: Request = kwargs.get('request')
             if request:
-                logger.info(f"Request details: {stringify_request(request)}")
+                print(f"Request details: {stringify_request(request)}")
                 baggage = request.headers.get('baggage')
                 if baggage:
                     parts = [item.strip() for item in baggage.split(',')]
@@ -125,7 +125,7 @@ def extract_session_id(kwargs):
                                 session_id = value.strip()
                                 break
         except Exception as e:
-            logger.error(f"Error extracting session ID: {e}")
+            print(f"Error extracting session ID: {e}")
         return session_id
 
 def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
