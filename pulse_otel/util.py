@@ -81,52 +81,54 @@ def form_otel_collector_endpoint(
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
 
-def stringify_request(request: Request) -> str:
+def stringify_request(request: Any) -> str:
     """
-    Converts FastAPI Request to a string summary.
+    Converts a FastAPI-like request object to a string summary.
+    Safely handles objects that may not have standard Request attributes.
     """
     try:
-        method = request.method
-        url = str(request.url)
-        headers = dict(request.headers)
-        headers_str = ", ".join(f"{k}={v}" for k, v in headers.items())
+        method = getattr(request, "method", "UNKNOWN")
+        url = str(getattr(request, "url", "UNKNOWN"))
+        headers = getattr(request, "headers", {})
+        if hasattr(headers, "items"):
+            headers_str = ", ".join(f"{k}={v}" for k, v in headers.items())
+        else:
+            headers_str = str(headers)
         return f"Request(method={method}, url={url}, headers={{ {headers_str} }})"
     except Exception as e:
         return f"Error converting request to string: {e}"
     
-def extract_session_id(kwargs):
-        """
-        Extracts the session ID from the 'baggage' header in the provided kwargs.
+def extract_session_id(kwargs: dict) -> str:
+    """
+    Extracts the session ID from a 'baggage' header in a FastAPI Request object
+    or directly from a 'headers' dict in kwargs.
+    """
+    session_id = None
+    try:
+        print("[pulse_agent] Extracting session ID from baggage header.")
 
-        Args:
-            kwargs (dict): A dictionary that may contain a 'headers' key with HTTP headers.
+        # Try request object first
+        request = kwargs.get('request')
+        if request:
+            print(f"[pulse_agent] Request details: {stringify_request(request)}")
+            headers = getattr(request, "headers", {})
+        else:
+            headers = kwargs.get("headers", {})
+            print(f"[pulse_agent] Headers passed directly: {headers}")
 
-        Returns:
-            str or None: The extracted session ID if found, otherwise None.
+        baggage = headers.get('baggage') if hasattr(headers, "get") else None
+        if baggage:
+            parts = [item.strip() for item in baggage.split(',')]
+            for part in parts:
+                if '=' in part:
+                    key, value = part.split('=', 1)
+                    if key.strip() == HEADER_INCOMING_SESSION_ID:
+                        session_id = value.strip()
+                        break
+    except Exception as e:
+        print(f"[pulse_agent] Error extracting session ID: {e}")
+    return session_id
 
-        Notes:
-            - The function looks for a 'baggage' header in the 'headers' dictionary.
-            - It parses the 'baggage' header for a key matching HEADER_INCOMING_SESSION_ID.
-            - If an error occurs during extraction, it prints an error message and returns None.
-        """
-        session_id = None
-        try:
-            print("[pulse_agent] Extracting session ID from baggage header.")
-            request: Request = kwargs.get('request')
-            if request:
-                print(f"[pulse_agent] Request details: {stringify_request(request)}")
-                baggage = request.headers.get('baggage')
-                if baggage:
-                    parts = [item.strip() for item in baggage.split(',')]
-                    for part in parts:
-                        if '=' in part:
-                            key, value = part.split('=', 1)
-                            if key.strip() == HEADER_INCOMING_SESSION_ID:
-                                session_id = value.strip()
-                                break
-        except Exception as e:
-            print(f"[pulse_agent] Error extracting session ID: {e}")
-        return session_id
 
 def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
     if not endpoint_url:
