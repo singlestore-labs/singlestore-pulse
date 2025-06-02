@@ -301,17 +301,26 @@ def pulse_tool(_func=None, *, name=None):
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
-def add_session_id_to_span_attributes(kwargs):
-    session_id = extract_session_id(kwargs)
-    if session_id:
-        properties = {SESSION_ID: session_id}
-        Traceloop.set_association_properties(properties)
-        print(f"[pulse_agent] singlestore-session-id: {session_id}")
-    else:
-        random_session_id = random.randint(10**15, 10**16 - 1)
-        properties = {SESSION_ID: str(random_session_id)}
-        Traceloop.set_association_properties(properties)
-        print("[pulse_agent] No singlestore-session-id found in baggage.")
+def add_session_id_to_span_attributes(**kwargs):
+	"""
+	Extracts the session ID from the `baggage` header in the provided kwargs and sets it as an association property for tracing.
+	Args:
+		kwargs (dict): A dictionary that may contain a 'headers' key with HTTP headers.
+	Returns:
+		None
+	"""
+
+	print("[pulse_agent] Adding session ID to span attributes...")
+	session_id = extract_session_id(kwargs)
+	if session_id:
+		properties = {SESSION_ID: session_id}
+		Traceloop.set_association_properties(properties)
+		print(f"[pulse_agent] singlestore-session-id: {session_id}")
+	else:
+		random_session_id = random.randint(10**15, 10**16 - 1)
+		properties = {SESSION_ID: str(random_session_id)}
+		Traceloop.set_association_properties(properties)
+		print("[pulse_agent] No singlestore-session-id found in baggage.")
 
 def pulse_agent(_func=None, *, name=None):
     """
