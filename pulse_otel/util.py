@@ -1,7 +1,6 @@
 import os
 import socket
 from urllib.parse import urlparse
-from fastapi import Request
 
 from pulse_otel.consts import (
     OTEL_COLLECTOR_ENDPOINT,
@@ -81,23 +80,6 @@ def form_otel_collector_endpoint(
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
 
-def stringify_request(request: Any) -> str:
-    """
-    Converts a FastAPI-like request object to a string summary.
-    Safely handles objects that may not have standard Request attributes.
-    """
-    try:
-        method = getattr(request, "method", "UNKNOWN")
-        url = str(getattr(request, "url", "UNKNOWN"))
-        headers = getattr(request, "headers", {})
-        if hasattr(headers, "items"):
-            headers_str = ", ".join(f"{k}={v}" for k, v in headers.items())
-        else:
-            headers_str = str(headers)
-        return f"Request(method={method}, url={url}, headers={{ {headers_str} }})"
-    except Exception as e:
-        return f"Error converting request to string: {e}"
-    
 def extract_session_id(kwargs: dict) -> str:
     """
     Extracts the session ID from a 'baggage' header in a FastAPI Request object
@@ -105,16 +87,11 @@ def extract_session_id(kwargs: dict) -> str:
     """
     session_id = None
     try:
-        print("[pulse_agent] Extracting session ID from baggage header.")
-
-        # Try request object first
         request = kwargs.get('request')
-        if request:
-            print(f"[pulse_agent] Request details: {stringify_request(request)}")
+        if request and hasattr(request, "headers"):
             headers = getattr(request, "headers", {})
         else:
             headers = kwargs.get("headers", {})
-            print(f"[pulse_agent] Headers passed directly: {headers}")
 
         baggage = headers.get('baggage') if hasattr(headers, "get") else None
         if baggage:
