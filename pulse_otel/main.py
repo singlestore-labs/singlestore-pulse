@@ -442,6 +442,12 @@ def get_jsonl_file_exporter():
 	print("No JSON log file provided. Skipping JSON log export.")
 	return None
 
+def healthcheckpulse():
+	return {
+		"status": "ok",
+		"message": "Pulse is running",
+		"version": "1.0.0",
+	}
 
 class JSONLFileLogExporter(LogExporter):
 	def __init__(self, file_path):
