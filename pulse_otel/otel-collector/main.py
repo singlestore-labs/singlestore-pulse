@@ -3,6 +3,7 @@ import os
 import datetime
 import json
 from fastapi import FastAPI, HTTPException
+from fastapi import Request
 import uvicorn
 from pydantic import BaseModel
 
@@ -109,10 +110,10 @@ def get_funny_timestamp_phrase(funny_timestamp):
 
 # Simple agent function to process user input and decide on tool use
 @app.post("/agent/run")
-@pulse_agent(name="MyAgentName")
-def agent_run(request: AgentRunRequest):  # Changed back to sync function
+@pulse_agent()
+def agent_run(request: Request, body: AgentRunRequest):  # Changed back to sync function
     try:
-        prompt = request.prompt
+        prompt = body.prompt
         messages = [{"role": "user", "content": prompt}]
         
         configs = get_configs()
