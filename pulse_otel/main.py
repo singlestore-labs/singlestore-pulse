@@ -42,10 +42,6 @@ import logging
 
 _pulse_instance = None
 
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
 class Pulse:
 	def __init__(
 		self,
@@ -310,7 +306,6 @@ def add_session_id_to_span_attributes(**kwargs):
 		None
 	"""
 
-	print("[pulse_agent] Adding session ID to span attributes...")
 	session_id = extract_session_id(kwargs)
 	if session_id:
 		properties = {SESSION_ID: session_id}
@@ -373,7 +368,7 @@ def pulse_agent(_func=None, *, name=None):
         
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            add_session_id_to_span_attributes(**kwargs) # Unpack kwargs here
+            add_session_id_to_span_attributes(**kwargs)
             return decorated_func(*args, **kwargs)
         
         return wrapper
@@ -389,7 +384,7 @@ def pulse_agent(_func=None, *, name=None):
             
             @functools.wraps(func)
             def inner(*args, **kwargs):
-                add_session_id_to_span_attributes(**kwargs) # Unpack kwargs here as well for consistency
+                add_session_id_to_span_attributes(**kwargs)
                 return decorated_func(*args, **kwargs)
             return inner
         return wrapper

@@ -9,11 +9,6 @@ from pulse_otel.consts import (
     HEADER_INCOMING_SESSION_ID,
 )
 
-import logging
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
 def get_environ_vars():
     """
     Reads specific environment variables and returns their values. If a variable is not set, returns its default value.
