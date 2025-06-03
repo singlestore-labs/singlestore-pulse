@@ -2,7 +2,9 @@ import functools
 import os
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _logs
+from opentelemetry import _logs, trace
+
+from opentelemetry.trace import get_current_span
 
 from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
@@ -183,74 +185,25 @@ class Pulse:
 		logging.root.addHandler(handler)
 		return log_exporter
 	
-	def pulse_add_session_id(self, session_id=None, **kwargs):
-		"""
-		Decorator to set Traceloop association properties for a function.
 
-		Parameters:
-		- session_id: Optional session_id identifier
-		- **kwargs: Any additional association properties
-		"""
-		def decorator(func):
-			def wrapper(*args, **kwargs_inner):
-
-				properties = {}
-				if session_id:
-					properties["session_id"] = session_id
-				properties.update(kwargs)
-
-				# Set the association properties
-				Traceloop.set_association_properties(properties)
-				return func(*args, **kwargs_inner)
-			return wrapper
-		return decorator
-
-
-	def add_traceid_header(self, func: Callable) -> Callable:
-		@wraps(func)
-		async def wrapper(request: Request, *args, **kwargs) -> Response:
-			# Generate unique trace ID
-			trace_id = str(uuid.uuid4())
-
-			# Extract session ID from request headers if present
-			session_id = request.headers.get("X-SINGLESTORE-AI-SESSION-ID", "N/A")
-
-			try:
-				# Execute the original function
-				result = await func(request, *args, **kwargs)
-
-				# If result is already a Response object
-				if isinstance(result, Response):
-					result.headers["X-SINGLESTORE-TRACE-ID"] = trace_id
-					return result
-
-				return JSONResponse(
-					content=result,
-					headers={"X-SINGLESTORE-TRACE-ID": trace_id}
-				)
-
-			except Exception as e:
-				raise e
-
-		return wrapper
-	
 	@staticmethod
 	def add_traceid_header(result: Response, traceID: str) -> Response:
-			try:
-
-				# If result is already a Response object
-				if isinstance(result, Response):
-					result.headers[TRACEID_RESPONSE_HEADER] = traceID
-					return result
-
-				return JSONResponse(
-					content=result,
-					headers={TRACEID_RESPONSE_HEADER: traceID}
-				)
-
-			except Exception as e:
-				print(f"Error adding trace ID header: {e}")
+		"""
+		Adds a trace ID header to the response.
+		"""
+		try:
+			# If result is already a Response object
+			if isinstance(result, Response):
+				result.headers[TRACEID_RESPONSE_HEADER] = traceID
 				return result
+			return JSONResponse(
+				content=result,
+				headers={TRACEID_RESPONSE_HEADER: traceID}
+			)
+
+		except Exception as e:
+			print(f"Error adding trace ID header: {e}")
+			return result
 
 def pulse_tool(_func=None, *, name=None):
 	"""
@@ -349,6 +302,7 @@ def pulse_agent(_func=None, *, name=None):
 			# Function logic here
 			pass
 	"""
+	
 	def decorator(func):
 		# Use the provided name or fall back to the function's name
 		agent_name = name or func.__name__
@@ -359,10 +313,17 @@ def pulse_agent(_func=None, *, name=None):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			add_session_id_to_span_attributes(kwargs)
-			result = decorated_func(*args, **kwargs)
-			# Add session ID to the response headers if available
-			Pulse.add_traceid_header(result, str(uuid.uuid4()))
-			return result
+			tracer = trace.get_tracer(agent_name)
+			with tracer.start_as_current_span(agent_name):
+				result = decorated_func(*args, **kwargs)
+
+				span = get_current_span()
+				trace_id = span.get_span_context().trace_id
+
+				# Convert to hex string (OpenTelemetry trace IDs are 16-byte ints)
+				trace_id_hex = format(trace_id, "032x")
+				result = Pulse.add_traceid_header(result, trace_id_hex)
+				return result
 
 		return wrapper
 
@@ -378,10 +339,17 @@ def pulse_agent(_func=None, *, name=None):
 			@functools.wraps(func)
 			def inner(*args, **kwargs):
 				add_session_id_to_span_attributes(kwargs)
-				result = decorated_func(*args, **kwargs)
-				# Add session ID to the response headers if available
-				Pulse.add_traceid_header(result, str(uuid.uuid4()))
-				return result
+				tracer = trace.get_tracer(agent_name)
+
+				with tracer.start_as_current_span(agent_name):
+					result = decorated_func(*args, **kwargs)
+
+					span = get_current_span()
+					trace_id = span.get_span_context().trace_id
+
+					trace_id_hex = format(trace_id, "032x")
+					result = Pulse.add_traceid_header(result, trace_id_hex)
+					return result
 			return inner
 		return wrapper
 	else:
