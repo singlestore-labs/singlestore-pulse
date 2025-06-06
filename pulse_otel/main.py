@@ -396,6 +396,30 @@ def pulse_agent(_func=None, *, name=None):
         # Called as @pulse_agent (without parentheses)
         return decorator(_func)
 
+
+def pulse_agent2(func):
+	"""
+	A decorator that wraps a function to extract a `singlestore-session-id` from the
+	`baggage` header in the keyword arguments (if present) and associates it with
+	Traceloop properties.
+
+	The decorated function is then wrapped with the `agent` decorator.
+
+	Args:
+		func (Callable): The function to be decorated.
+
+	Returns:
+		Callable: The wrapped function with additional functionality for handling
+		`singlestore-session-id` and associating it with Traceloop properties.
+	"""
+	@functools.wraps(func)
+	def wrapped(*args, **kwargs):
+		add_session_id_to_span_attributes(**kwargs)
+		return agent(func)(*args, **kwargs)
+
+	return wrapped
+
+
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
         self.file_name = file_name

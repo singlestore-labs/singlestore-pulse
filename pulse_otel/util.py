@@ -1,3 +1,4 @@
+import logging
 import os
 import socket
 from urllib.parse import urlparse
@@ -81,8 +82,11 @@ def extract_session_id(kwargs: dict) -> str:
     Extracts the session ID from a 'baggage' header in a FastAPI Request object
     or directly from a 'headers' dict in kwargs.
     """
+    logger = logging.getLogger(__name__)
+
     session_id = None
     try:
+        logger.info(f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}")
         request = kwargs.get('request')
         if request and hasattr(request, "headers"):
             headers = getattr(request, "headers", {})
