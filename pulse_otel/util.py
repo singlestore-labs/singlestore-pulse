@@ -1,6 +1,7 @@
 import os
 import socket
 from urllib.parse import urlparse
+from typing import Optional
 
 from pulse_otel.consts import (
     OTEL_COLLECTOR_ENDPOINT,
@@ -100,6 +101,28 @@ def extract_session_id(kwargs: dict) -> str:
     except Exception as e:
         print(f"[pulse_agent] Error extracting session ID: {e}")
     return session_id
+
+def extract_session_id_from_body(kwargs: dict) -> Optional[str]:
+    """
+    Extracts the 'session_id' from the request body stored in kwargs['body'].
+    Supports both dict-like objects and Pydantic models.
+    Returns None if not found or if any error occurs.
+    """
+    try:
+        request_body = kwargs.get("body")
+        if request_body:
+           
+            if isinstance(request_body, dict):
+                return request_body.get("session_id")
+            
+            # For attribute-style (e.g., Pydantic model)
+            elif hasattr(request_body, "session_id"):
+                print(f"[pulse_agent] DEBUG - Found session_id in request body attributes: {request_body.session_id}")
+                return getattr(request_body, "session_id")
+    except Exception as e:
+        print(f"[pulse_agent] Error extracting session_id from body: {e}")
+
+    return None
 
 
 def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:

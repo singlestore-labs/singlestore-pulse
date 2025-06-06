@@ -21,6 +21,7 @@ app = FastAPI(title="My time agent", description="A FastAPI app that uses Pulse 
 # Define a Pydantic model for the request body
 class AgentRunRequest(BaseModel):
     prompt: str
+    session_id: str = None  # Optional session ID
 
 logger = logging.getLogger("myapp")
 logger.setLevel(logging.DEBUG)

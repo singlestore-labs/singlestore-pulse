@@ -29,6 +29,7 @@ from pulse_otel.util import (
 	form_otel_collector_endpoint, 
 	extract_session_id, 
 	_is_endpoint_reachable,
+	extract_session_id_from_body,
 	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
@@ -307,6 +308,9 @@ def add_session_id_to_span_attributes(**kwargs):
 	"""
 
 	session_id = extract_session_id(kwargs)
+	if not session_id:
+		session_id = extract_session_id_from_body(kwargs)
+
 	if session_id:
 		properties = {SESSION_ID: session_id}
 		Traceloop.set_association_properties(properties)
