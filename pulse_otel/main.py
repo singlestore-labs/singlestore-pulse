@@ -308,6 +308,10 @@ def add_session_id_to_span_attributes(**kwargs):
 	"""
 
 	session_id = extract_session_id(kwargs)
+	properties = {"debug_kwargs": str(kwargs)}
+
+	Traceloop.set_association_properties(properties)
+
 	if not session_id:
 		session_id = extract_session_id_from_body(kwargs)
 
