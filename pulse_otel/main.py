@@ -204,28 +204,6 @@ class Pulse:
 		logging.root.addHandler(handler)
 		return log_exporter
 
-	def pulse_add_session_id(self, session_id=None, **kwargs):
-		"""
-		Decorator to set Traceloop association properties for a function.
-
-		Parameters:
-		- session_id: Optional session_id identifier
-		- **kwargs: Any additional association properties
-		"""
-		def decorator(func):
-			def wrapper(*args, **kwargs_inner):
-
-				properties = {}
-				if session_id:
-					properties["session_id"] = session_id
-				properties.update(kwargs)
-
-				# Set the association properties
-				Traceloop.set_association_properties(properties)
-				return func(*args, **kwargs_inner)
-			return wrapper
-		return decorator
-
 	def add_traceid_header(self, func: Callable) -> Callable:
 		@wraps(func)
 		async def wrapper(request: Request, *args, **kwargs) -> Response:
@@ -319,12 +297,12 @@ def add_session_id_to_span_attributes(**kwargs):
 		session_id = extract_session_id_from_body(kwargs)
 
 	if session_id:
-		properties = {SESSION_ID: session_id}
+		properties = {"session": session_id}
 		Traceloop.set_association_properties(properties)
 		print(f"[pulse_agent] singlestore-session-id: {session_id}")
 	else:
 		random_session_id = random.randint(10**15, 10**16 - 1)
-		properties = {SESSION_ID: str(random_session_id)}
+		properties = {"session": str(random_session_id)}
 		Traceloop.set_association_properties(properties)
 		print("[pulse_agent] No singlestore-session-id found in baggage.")
 

@@ -87,6 +87,9 @@ def extract_session_id(kwargs: dict) -> str:
     session_id = None
     try:
         logger.info(f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}")
+        session_id = kwargs.get('session_id')
+        if session_id:
+            return session_id
         request = kwargs.get('request')
         if request and hasattr(request, "headers"):
             headers = getattr(request, "headers", {})
