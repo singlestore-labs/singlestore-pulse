@@ -24,7 +24,7 @@ import logging
 from typing import Callable
 import typing
 
-from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint
+from pulse_otel.util import get_environ_vars, form_otel_collector_endpoint, extract_session_id, extract_session_id_from_body
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
@@ -32,6 +32,7 @@ from pulse_otel.consts import (
 	HEADER_INCOMING_SESSION_ID,
 	PROJECT,
 	LIVE_LOGS_FILE_PATH,
+	
 )
 import logging
 
@@ -222,29 +223,7 @@ class Pulse:
 				raise e
 
 		return wrapper
-
-
-def pulse_tool(func):
-	"""
-	A decorator that wraps a given function with a third-party `tool` decorator
-	while preserving the original function's metadata.
-
-	Args:
-		func (Callable): The function to be wrapped.
-
-	Returns:
-		Callable: The wrapped function with preserved metadata.
-	"""
-	# Wrap the original function with the third-party decorator
-	decorated_func = tool(func)
-
-	# Preserve metadata and return
-	@functools.wraps(func)
-	def wrapper(*args, **kwargs):
-		return decorated_func(*args, **kwargs)
-
-	return wrapper
-
+	
 def pulse_agent(func):
 	"""
 	A decorator that wraps a function to extract a `singlestore-session-id` from the
@@ -284,6 +263,65 @@ def pulse_agent(func):
 		else:
 			random_session_id = random.randint(10**15, 10**16 - 1)
 			properties = {SESSION_ID: str(random_session_id)}
+			Traceloop.set_association_properties(properties)
+			print("[pulse_agent] No singlestore-session-id found in baggage.")
+
+		return agent(func)(*args, **kwargs)
+
+	return wrapped
+
+def pulse_tool(func):
+	"""
+	A decorator that wraps a given function with a third-party `tool` decorator
+	while preserving the original function's metadata.
+
+	Args:
+		func (Callable): The function to be wrapped.
+
+	Returns:
+		Callable: The wrapped function with preserved metadata.
+	"""
+	# Wrap the original function with the third-party decorator
+	decorated_func = tool(func)
+
+	# Preserve metadata and return
+	@functools.wraps(func)
+	def wrapper(*args, **kwargs):
+		return decorated_func(*args, **kwargs)
+
+	return wrapper
+
+def pulse_agent22(func):
+	"""
+	A decorator that wraps a function to extract a `singlestore-session-id` from the
+	`baggage` header in the keyword arguments (if present) and associates it with
+	Traceloop properties.
+
+	The decorated function is then wrapped with the `agent` decorator.
+
+	Args:
+		func (Callable): The function to be decorated.
+
+	Returns:
+		Callable: The wrapped function with additional functionality for handling
+		`singlestore-session-id` and associating it with Traceloop properties.
+	"""
+	@functools.wraps(func)
+	def wrapped(*args, **kwargs):
+
+
+		session_id = extract_session_id(kwargs)
+
+		if not session_id:
+			session_id = extract_session_id_from_body(kwargs)
+
+		if session_id:
+			properties = {"sezzion": session_id, "kwargs": str(kwargs)}
+			Traceloop.set_association_properties(properties)
+			print(f"[pulse_agent] singlestore-session-id: {session_id}")
+		else:
+			random_session_id = random.randint(10**15, 10**16 - 1)
+			properties = {"sezzion": str(random_session_id), "kwargs": str(kwargs)}
 			Traceloop.set_association_properties(properties)
 			print("[pulse_agent] No singlestore-session-id found in baggage.")
 
