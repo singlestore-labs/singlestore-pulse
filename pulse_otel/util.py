@@ -9,7 +9,11 @@ from pulse_otel.consts import (
     DEFAULT_ENV_VARIABLES,
     ENV_VARIABLES_MAPPING,
     HEADER_INCOMING_SESSION_ID,
+    SESSION_ID,
 )
+import random
+from traceloop.sdk import Traceloop
+
 
 def get_environ_vars():
     """
@@ -102,7 +106,7 @@ def extract_session_id(**kwargs) -> str:
             for part in parts:
                 if '=' in part:
                     key, value = part.split('=', 1)
-                    if key.strip() == "singlestore-session-id":
+                    if key.strip() == HEADER_INCOMING_SESSION_ID:
                         session_id = value.strip()
                         break
     except Exception as e:
@@ -160,3 +164,21 @@ def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
     except Exception as e: # Catch any other unexpected errors during the check
         print(f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}")
         return False
+
+def add_session_id_to_span_attributes(**kwargs):
+	"""
+	Extracts the session ID from the `baggage` header in the provided kwargs and sets it as an association property for tracing.
+	Args:
+		kwargs (dict): A dictionary that may contain a 'headers' key with HTTP headers.
+	Returns:
+		None
+	"""
+	session_id = extract_session_id(**kwargs) or extract_session_id_from_body(**kwargs)
+
+	if not session_id:
+		session_id = str(random.randint(10**15, 10**16 - 1))
+		print("[pulse_agent] No singlestore-session-id found in baggage.")
+	properties = {
+		SESSION_ID: session_id,
+	}
+	Traceloop.set_association_properties(properties)

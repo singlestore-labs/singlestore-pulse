@@ -17,7 +17,6 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
-import random
 from functools import wraps
 import uuid
 import logging
@@ -27,9 +26,8 @@ import typing
 from pulse_otel.util import (
 	get_environ_vars, 
 	form_otel_collector_endpoint, 
-	extract_session_id, 
 	_is_endpoint_reachable,
-	extract_session_id_from_body,
+	add_session_id_to_span_attributes,
 	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
@@ -276,113 +274,37 @@ def pulse_tool(_func=None, *, name=None):
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
-def add_session_id_to_span_attributes(**kwargs):
+def pulse_agent(name):
 	"""
-	Extracts the session ID from the `baggage` header in the provided kwargs and sets it as an association property for tracing.
+	A decorator factory that wraps a function with additional tracing and session ID logic.
+
 	Args:
-		kwargs (dict): A dictionary that may contain a 'headers' key with HTTP headers.
+		name (str): The name to be used for the agent decorator.
+
 	Returns:
-		None
+		function: A decorator that wraps the target function, adding session ID to span attributes
+		before invoking the decorated agent function.
+
+	Usage:
+		@pulse_agent("my_agent")
+		def my_function(...):
+			...
+
+		@pulse_agent(name="my_agent")
+		def my_function(...):
+			...
 	"""
-	session_id = extract_session_id(**kwargs) or extract_session_id_from_body(**kwargs)
+	def decorator(func):
+		decorated_func = agent(name)(func)
 
-	if not session_id:
-		session_id = str(random.randint(10**15, 10**16 - 1))
-		print("[pulse_agent] No singlestore-session-id found in baggage.")
-	properties = {
-		SESSION_ID: session_id,
-	}
-	Traceloop.set_association_properties(properties)
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			add_session_id_to_span_attributes(**kwargs)
+			return decorated_func(*args, **kwargs)
 
-def pulse_agent(_func=None, *, name=None):
-    """
-    A decorator that integrates with the SingleStore Pulse agent to associate
-    session IDs with function calls for tracing purposes. It extracts the
-    session ID from the `baggage` header if available, or generates a random
-    session ID if not. The session ID is then set as an association property
-    for tracing.
-    
-    Args:
-        _func (callable, optional): The function to be decorated. Defaults to None.
-        name (str, optional): The name to be used for the agent. If not provided,
-            it defaults to the function name.
-    
-    Returns:
-        callable: The wrapped function with tracing capabilities.
-    
-    Notes:
-        - If a session ID is found in the `baggage` header, it is used for tracing.
-        - If no session ID is found, a random session ID is generated.
-        - The `Traceloop.set_association_properties` method is used to set the
-          session ID as an association property.
-        - The `agent` function is used to wrap the original function with the
-          resolved name.
-    
-    Example:
-        @pulse_agent(name="my_app")
-        def my_function(headers):
-            # Function logic here
-            pass
-        
-        @pulse_agent
-        def my_function(headers):
-            # Function logic here
-            pass
-        
-        # Works with other decorators:
-        @pulse_agent(name="my_app")
-        @retry(stop=stop_after_attempt(3))
-        def my_function(headers):
-            # Function logic here
-            pass
-    """
-    def decorator(func):
-        # Use the provided name or fall back to the function's name
-        agent_name = name or func.__name__
-        
-        # Apply the agent decorator to the function
-        decorated_func = agent(agent_name)(func)
-        
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            add_session_id_to_span_attributes(**kwargs)
-            return decorated_func(*args, **kwargs)
-        
-        return wrapper
-    
-    if _func is None:
-        # Called as @pulse_agent() or @pulse_agent(name="...")
-        return decorator
-    elif isinstance(_func, str):
-        # Called as @pulse_agent("name") - backward compatibility
-        def wrapper(func):
-            agent_name = _func
-            decorated_func = agent(agent_name)(func)
-            
-            @functools.wraps(func)
-            def inner(*args, **kwargs):
-                add_session_id_to_span_attributes(**kwargs)
-                return decorated_func(*args, **kwargs)
-            return inner
-        return wrapper
-    else:
-        # Called as @pulse_agent (without parentheses)
-        return decorator(_func)
+		return wrapper
 
-
-def pulse_agent22(name):
-    def decorator(func):
-        decorated_func = agent(name)(func)
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            add_session_id_to_span_attributes(**kwargs)
-            return decorated_func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
+	return decorator
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
