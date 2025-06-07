@@ -310,18 +310,18 @@ def pulse_agent22(func):
 	def wrapped(*args, **kwargs):
 
 
-		session_id = extract_session_id(kwargs)
+		session_id = extract_session_id(**kwargs)
 
 		if not session_id:
-			session_id = extract_session_id_from_body(kwargs)
+			session_id = extract_session_id_from_body(**kwargs)
 
 		if session_id:
-			properties = {"sezzion": session_id, "kwargs": str(kwargs)}
+			properties = {"sezzion": session_id, "kwargs": str(**kwargs)}
 			Traceloop.set_association_properties(properties)
 			print(f"[pulse_agent] singlestore-session-id: {session_id}")
 		else:
 			random_session_id = random.randint(10**15, 10**16 - 1)
-			properties = {"sezzion": str(random_session_id), "kwargs": str(kwargs)}
+			properties = {"sezzion": str(random_session_id), "kwargs": str(**kwargs)}
 			Traceloop.set_association_properties(properties)
 			print("[pulse_agent] No singlestore-session-id found in baggage.")
 
