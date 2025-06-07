@@ -4,6 +4,9 @@ from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
 from opentelemetry import _logs
 
+from opentelemetry.trace import get_current_span, INVALID_SPAN
+from opentelemetry.trace.span import Span
+
 from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
@@ -15,7 +18,6 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
 )
 from fastapi import Request, Response
-from fastapi.responses import JSONResponse
 
 from functools import wraps
 import uuid
@@ -36,6 +38,7 @@ from pulse_otel.consts import (
 	HEADER_INCOMING_SESSION_ID,
 	PROJECT,
 	LIVE_LOGS_FILE_PATH,
+	TRACEID_RESPONSE_HEADER,	
 )
 import logging
 
@@ -202,35 +205,6 @@ class Pulse:
 		logging.root.addHandler(handler)
 		return log_exporter
 
-	def add_traceid_header(self, func: Callable) -> Callable:
-		@wraps(func)
-		async def wrapper(request: Request, *args, **kwargs) -> Response:
-			# Generate unique trace ID
-			trace_id = str(uuid.uuid4())
-
-			# Extract session ID from request headers if present
-			session_id = request.headers.get("X-SINGLESTORE-AI-SESSION-ID", "N/A")
-
-			try:
-				# Execute the original function
-				result = await func(request, *args, **kwargs)
-
-				# If result is already a Response object
-				if isinstance(result, Response):
-					result.headers["X-SINGLESTORE-TRACE-ID"] = trace_id
-					return result
-
-				return JSONResponse(
-					content=result,
-					headers={"X-SINGLESTORE-TRACE-ID": trace_id}
-				)
-
-			except Exception as e:
-				raise e
-
-		return wrapper
-
-
 def pulse_tool(_func=None, *, name=None):
 	"""
 	Decorator to register a function as a tool. Can be used as @pulse_tool, @pulse_tool("name"), or @pulse_tool(name="name").
@@ -300,7 +274,29 @@ def pulse_agent(name):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			add_session_id_to_span_attributes(**kwargs)
-			return decorated_func(*args, **kwargs)
+
+			# Get current span and extract trace ID
+			span = get_current_span()
+			trace_id = None
+			if span and span.get_span_context().is_valid:
+				trace_id = format(span.get_span_context().trace_id, "032x")
+
+			result = decorated_func(*args, **kwargs)
+
+			# Inject trace_id into the response
+			if isinstance(result, dict):
+				result["trace_id"] = trace_id
+				return result
+			elif hasattr(result, "dict") and callable(result.dict):
+				result_dict = result.dict()
+				result_dict["trace_id"] = trace_id
+				return result.__class__(**result_dict)
+			else:
+				# fallback for non-dict results (e.g., strings, etc.)
+				return {
+					"result": result,
+					"trace_id": trace_id
+				}
 
 		return wrapper
 
