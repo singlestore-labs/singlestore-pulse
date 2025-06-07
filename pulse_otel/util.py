@@ -5,7 +5,8 @@ from pulse_otel.consts import (
     ENV_VARIABLES_MAPPING
 )
 
-
+import logging
+from typing import Optional
 
 def get_environ_vars():
     """
@@ -98,7 +99,7 @@ def extract_session_id(kwargs: dict) -> str:
             for part in parts:
                 if '=' in part:
                     key, value = part.split('=', 1)
-                    if key.strip() == HEADER_INCOMING_SESSION_ID:
+                    if key.strip() == "singlestore-session-id":
                         session_id = value.strip()
                         break
     except Exception as e:
