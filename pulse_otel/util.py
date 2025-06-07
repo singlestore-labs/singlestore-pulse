@@ -10,7 +10,10 @@ from pulse_otel.consts import (
     ENV_VARIABLES_MAPPING,
     HEADER_INCOMING_SESSION_ID,
     SESSION_ID,
+    TRACEID_RESPONSE_HEADER,
 )
+from fastapi import Request, Response
+
 import random
 from traceloop.sdk import Traceloop
 
@@ -208,3 +211,21 @@ def add_session_id_to_span_attributes(**kwargs):
         SESSION_ID: session_id,
     }
     Traceloop.set_association_properties(properties)
+
+def add_traceid_header(result: Response, traceID: str) -> Response:
+    """
+    Adds a trace ID header to the response.
+    """
+    try:
+        # If result is already a Response object
+        if isinstance(result, Response):
+            result.headers[TRACEID_RESPONSE_HEADER] = traceID
+            return result
+        return JSONResponse(
+            content=result,
+            headers={TRACEID_RESPONSE_HEADER: traceID}
+        )
+
+    except Exception as e:
+        print(f"Error adding trace ID header: {e}")
+        return result
