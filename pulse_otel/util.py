@@ -74,7 +74,7 @@ def form_otel_collector_endpoint(
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
 
-def extract_session_id(kwargs: dict) -> str:
+def extract_session_id(**kwargs) -> str:
     """
     Extracts the session ID from a 'baggage' header in a FastAPI Request object
     or directly from a 'headers' dict in kwargs.
@@ -106,7 +106,7 @@ def extract_session_id(kwargs: dict) -> str:
         print(f"[pulse_agent] Error extracting session ID: {e}")
     return session_id
 
-def extract_session_id_from_body(kwargs: dict) -> Optional[str]:
+def extract_session_id_from_body(**kwargs) -> Optional[str]:
     """
     Extracts the 'session_id' from the request body stored in kwargs['body'].
     Supports both dict-like objects and Pydantic models.

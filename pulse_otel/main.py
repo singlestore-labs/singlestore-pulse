@@ -309,7 +309,6 @@ def pulse_agent22(func):
 	@functools.wraps(func)
 	def wrapped(*args, **kwargs):
 
-
 		session_id = extract_session_id(**kwargs)
 
 		if not session_id:
