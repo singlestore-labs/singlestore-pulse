@@ -1,6 +1,17 @@
 version: '3.8'
 
 services:
+  myapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8000"
+    depends_on:
+      - otel-collector
+    networks:
+      - otel-network
+
   otel-collector:
     image: otel/opentelemetry-collector:latest
     command: ["--config=/etc/otel-collector-config.yaml"]
