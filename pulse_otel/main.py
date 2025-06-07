@@ -291,44 +291,36 @@ def pulse_tool(func):
 
 	return wrapper
 
-def pulse_agent22(_func=None, *, name=None):	
-	"""
-	A decorator that wraps a function to extract a `singlestore-session-id` from the
-	`baggage` header in the keyword arguments (if present) and associates it with
-	Traceloop properties.
-
-	The decorated function is then wrapped with the `agent` decorator.
-
-	Args:
-		func (Callable): The function to be decorated.
-
-	Returns:
-		Callable: The wrapped function with additional functionality for handling
-		`singlestore-session-id` and associating it with Traceloop properties.
-	"""
-	def wrapped(func):
-		agent_name = _func
-		decorated_func = agent(agent_name)(func)
-		
-		@functools.wraps(func)
-		def inner(*args, **kwargs):
-			session_id = extract_session_id(**kwargs)
-
-			if not session_id:
-				session_id = extract_session_id_from_body(**kwargs)
-
-			if session_id:
-				properties = {"sezzion": session_id, "kwargs": str(**kwargs)}
-				Traceloop.set_association_properties(properties)
-				print(f"[pulse_agent] singlestore-session-id: {session_id}")
-			else:
-				random_session_id = random.randint(10**15, 10**16 - 1)
-				properties = {"sezzion": str(random_session_id), "kwargs": str(**kwargs)}
-				Traceloop.set_association_properties(properties)
-				print("[pulse_agent] No singlestore-session-id found in baggage.")
-				return decorated_func(*args, **kwargs)
-		return inner
-	return wrapped
+def pulse_agent22(_func=None, *, name=None):
+    def decorator(func):
+        # Use the provided name or default to function name
+        agent_name = name if name is not None else func.__name__
+        decorated_func = agent(agent_name)(func)
+        
+        @functools.wraps(func)
+        def inner(*args, **kwargs):
+            session_id = extract_session_id(**kwargs)
+            if not session_id:
+                session_id = extract_session_id_from_body(**kwargs)
+            
+            if session_id:
+                properties = {"sezzion": session_id, "kwargs": str(kwargs)}
+                Traceloop.set_association_properties(properties)
+                print(f"[pulse_agent] singlestore-session-id: {session_id}")
+            else:
+                random_session_id = random.randint(10**15, 10**16 - 1)
+                properties = {"sezzion": str(random_session_id), "kwargs": str(kwargs)}
+                Traceloop.set_association_properties(properties)
+                print("[pulse_agent] No singlestore-session-id found in baggage.")
+            
+            return decorated_func(*args, **kwargs)
+        return inner
+    
+    # Handle both @pulse_agent22 and @pulse_agent22(name="...") usage
+    if _func is None:
+        return decorator
+    else:
+        return decorator(_func)
 
 
 class CustomFileSpanExporter(SpanExporter):
