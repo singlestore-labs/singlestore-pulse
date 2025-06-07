@@ -77,7 +77,7 @@ def form_otel_collector_endpoint(
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
 
-def extract_session_id(kwargs: dict) -> str:
+def extract_session_id(**kwargs) -> str:
     """
     Extracts the session ID from a 'baggage' header in a FastAPI Request object
     or directly from a 'headers' dict in kwargs.
@@ -86,7 +86,7 @@ def extract_session_id(kwargs: dict) -> str:
 
     session_id = None
     try:
-        logger.info(f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}")
+        logger.debug(f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}")
         session_id = kwargs.get('session_id')
         if session_id:
             return session_id
@@ -102,20 +102,22 @@ def extract_session_id(kwargs: dict) -> str:
             for part in parts:
                 if '=' in part:
                     key, value = part.split('=', 1)
-                    if key.strip() == HEADER_INCOMING_SESSION_ID:
+                    if key.strip() == "singlestore-session-id":
                         session_id = value.strip()
                         break
     except Exception as e:
-        print(f"[pulse_agent] Error extracting session ID: {e}")
+        logger.error(f"[pulse_agent] Error extracting session ID: {e}")
     return session_id
 
-def extract_session_id_from_body(kwargs: dict) -> Optional[str]:
+def extract_session_id_from_body(**kwargs) -> Optional[str]:
     """
     Extracts the 'session_id' from the request body stored in kwargs['body'].
     Supports both dict-like objects and Pydantic models.
     Returns None if not found or if any error occurs.
     """
     try:
+        logger = logging.getLogger(__name__)
+
         request_body = kwargs.get("body")
         if request_body:
            
@@ -124,10 +126,10 @@ def extract_session_id_from_body(kwargs: dict) -> Optional[str]:
             
             # For attribute-style (e.g., Pydantic model)
             elif hasattr(request_body, "session_id"):
-                print(f"[pulse_agent] DEBUG - Found session_id in request body attributes: {request_body.session_id}")
+                logger.debug(f"[pulse_agent] DEBUG - Found session_id in request body attributes: {request_body.session_id}")
                 return getattr(request_body, "session_id")
     except Exception as e:
-        print(f"[pulse_agent] Error extracting session_id from body: {e}")
+        logger.error(f"[pulse_agent] Error extracting session_id from body: {e}")
 
     return None
 

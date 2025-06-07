@@ -284,27 +284,16 @@ def add_session_id_to_span_attributes(**kwargs):
 	Returns:
 		None
 	"""
-	properties = {"debug_kwargs2": str("hello")}
-
-	Traceloop.set_association_properties(properties)
-
-	session_id = extract_session_id(kwargs)
-	properties = {"debug_kwargs": str(kwargs)}
-
-	Traceloop.set_association_properties(properties)
+	session_id = extract_session_id(**kwargs) or extract_session_id_from_body(**kwargs)
 
 	if not session_id:
-		session_id = extract_session_id_from_body(kwargs)
-
-	if session_id:
-		properties = {"session": session_id}
-		Traceloop.set_association_properties(properties)
-		print(f"[pulse_agent] singlestore-session-id: {session_id}")
-	else:
-		random_session_id = random.randint(10**15, 10**16 - 1)
-		properties = {"session": str(random_session_id)}
-		Traceloop.set_association_properties(properties)
+		session_id = str(random.randint(10**15, 10**16 - 1))
 		print("[pulse_agent] No singlestore-session-id found in baggage.")
+	properties = {
+		SESSION_ID: session_id,
+		"kwargs": str(kwargs),
+	}
+	Traceloop.set_association_properties(properties)
 
 def pulse_agent(_func=None, *, name=None):
     """
@@ -382,27 +371,18 @@ def pulse_agent(_func=None, *, name=None):
         return decorator(_func)
 
 
-def pulse_agent2(func):
-	"""
-	A decorator that wraps a function to extract a `singlestore-session-id` from the
-	`baggage` header in the keyword arguments (if present) and associates it with
-	Traceloop properties.
+def pulse_agent22(name):
+    def decorator(func):
+        decorated_func = agent(name)(func)
 
-	The decorated function is then wrapped with the `agent` decorator.
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            add_session_id_to_span_attributes(**kwargs)
+            return decorated_func(*args, **kwargs)
 
-	Args:
-		func (Callable): The function to be decorated.
+        return wrapper
 
-	Returns:
-		Callable: The wrapped function with additional functionality for handling
-		`singlestore-session-id` and associating it with Traceloop properties.
-	"""
-	@functools.wraps(func)
-	def wrapped(*args, **kwargs):
-		add_session_id_to_span_attributes(**kwargs)
-		return agent(func)(*args, **kwargs)
-
-	return wrapped
+    return decorator
 
 
 class CustomFileSpanExporter(SpanExporter):
