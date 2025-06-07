@@ -291,7 +291,6 @@ def add_session_id_to_span_attributes(**kwargs):
 		print("[pulse_agent] No singlestore-session-id found in baggage.")
 	properties = {
 		SESSION_ID: session_id,
-		"kwargs": str(kwargs),
 	}
 	Traceloop.set_association_properties(properties)
 
