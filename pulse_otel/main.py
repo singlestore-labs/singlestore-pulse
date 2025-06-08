@@ -2,7 +2,8 @@ import functools
 import os
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _logs
+from opentelemetry import _logs, trace
+
 
 from opentelemetry.trace import get_current_span, INVALID_SPAN
 from opentelemetry.trace.span import Span
@@ -18,6 +19,7 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
 )
 from fastapi import Request, Response
+from fastapi.responses import StreamingResponse
 
 from functools import wraps
 import uuid
@@ -274,29 +276,33 @@ def pulse_agent(name):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			add_session_id_to_span_attributes(**kwargs)
-
-			# Get current span and extract trace ID
-			span = get_current_span()
-			trace_id = None
-			if span and span.get_span_context().is_valid:
-				trace_id = format(span.get_span_context().trace_id, "032x")
-
-			result = decorated_func(*args, **kwargs)
-
-			# Inject trace_id into the response
-			if isinstance(result, dict):
-				result["trace_id"] = trace_id
-				return result
-			elif hasattr(result, "dict") and callable(result.dict):
-				result_dict = result.dict()
-				result_dict["trace_id"] = trace_id
-				return result.__class__(**result_dict)
-			else:
-				# fallback for non-dict results (e.g., strings, etc.)
-				return {
-					"result": result,
-					"trace_id": trace_id
+			tracer = trace.get_tracer("aanshu")
+			# trace_id_hex = None
+			# Start a new span for the agent function
+			with tracer.start_as_current_span(name):
+				# Get current span and extract trace ID
+				span = get_current_span()
+				trace_id = span.get_span_context().trace_id
+				trace_id_hex = format(trace_id, "032x")
+				result = decorated_func(*args, **kwargs)
+				properties = {
+					"my_trace_id": trace_id_hex
 				}
+				Traceloop.set_association_properties(properties)
+				# Inject trace_id into the response
+				if isinstance(result, dict):
+					result["trace_id"] = trace_id
+					return result
+				elif hasattr(result, "dict") and callable(result.dict):
+					result_dict = result.dict()
+					result_dict["trace_id"] = trace_id
+					return result.__class__(**result_dict)
+				else:
+					# fallback for non-dict results (e.g., strings, etc.)
+					return {
+						"result": result,
+						"trace_id": trace_id
+					}
 
 		return wrapper
 
