@@ -45,6 +45,8 @@ from pulse_otel.consts import (
 import logging
 
 _pulse_instance = None
+logger = logging.getLogger(__name__)
+
 
 class Pulse:
 	def __init__(
@@ -276,12 +278,13 @@ def pulse_agent(name):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			add_session_id_to_span_attributes(**kwargs)
-			tracer = trace.get_tracer("aanshu")
+			logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
+
+			tracer = trace.get_tracer(__name__)
 			# trace_id_hex = None
 			# Start a new span for the agent function
-			with tracer.start_as_current_span(name):
+			with tracer.start_as_current_span(name) as span:
 				# Get current span and extract trace ID
-				span = get_current_span()
 				trace_id = span.get_span_context().trace_id
 				trace_id_hex = format(trace_id, "032x")
 				result = decorated_func(*args, **kwargs)
@@ -289,6 +292,7 @@ def pulse_agent(name):
 					"my_trace_id": trace_id_hex
 				}
 				Traceloop.set_association_properties(properties)
+				logger.info(f"Agent {name} executed with trace ID: {trace_id_hex}")
 				return result 
 				# Inject trace_id into the response
 				# if isinstance(result, dict):
