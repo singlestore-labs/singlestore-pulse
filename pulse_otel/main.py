@@ -289,20 +289,21 @@ def pulse_agent(name):
 					"my_trace_id": trace_id_hex
 				}
 				Traceloop.set_association_properties(properties)
+				return result 
 				# Inject trace_id into the response
-				if isinstance(result, dict):
-					result["trace_id"] = trace_id
-					return result
-				elif hasattr(result, "dict") and callable(result.dict):
-					result_dict = result.dict()
-					result_dict["trace_id"] = trace_id
-					return result.__class__(**result_dict)
-				else:
-					# fallback for non-dict results (e.g., strings, etc.)
-					return {
-						"result": result,
-						"trace_id": trace_id
-					}
+				# if isinstance(result, dict):
+				# 	result["trace_id"] = trace_id
+				# 	return result
+				# elif hasattr(result, "dict") and callable(result.dict):
+				# 	result_dict = result.dict()
+				# 	result_dict["trace_id"] = trace_id
+				# 	return result.__class__(**result_dict)
+				# else:
+				# 	# fallback for non-dict results (e.g., strings, etc.)
+				# 	return {
+				# 		"result": result,
+				# 		"trace_id": trace_id
+				# 	}
 
 		return wrapper
 
