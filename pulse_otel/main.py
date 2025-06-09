@@ -2,13 +2,12 @@ import functools
 import os
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _logs, trace
+from opentelemetry import _logs, trace, context
 
 
 from opentelemetry.trace import get_current_span, INVALID_SPAN
 from opentelemetry.trace.span import Span
-
-from opentelemetry.context import attach, set_value
+from opentelemetry.context import attach, detach, get_current, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
@@ -285,14 +284,23 @@ def pulse_agent(name):
 			# Start a new span for the agent function
 			with tracer.start_as_current_span(name) as span:
 				# Get current span and extract trace ID
+				ctx = trace.set_span_in_context(span)
+				token = attach(ctx)
+				
 				trace_id = span.get_span_context().trace_id
 				trace_id_hex = format(trace_id, "032x")
+				
+				current_span = trace.get_current_span()
+				logger.info(f"Current span inside context: {current_span.get_span_context().span_id}")
+				
 				result = decorated_func(*args, **kwargs)
 				properties = {
 					"my_trace_id": trace_id_hex
 				}
 				Traceloop.set_association_properties(properties)
 				logger.info(f"Agent {name} executed with trace ID: {trace_id_hex}")
+				detach(token)
+				logger.info(f"After detach: {trace.get_current_span().get_span_context().span_id}")
 				return result 
 				# Inject trace_id into the response
 				# if isinstance(result, dict):
