@@ -14,6 +14,7 @@ from pulse_otel.consts import (
 import random
 from traceloop.sdk import Traceloop
 
+logger = logging.getLogger(__name__)
 
 def get_environ_vars():
     """
@@ -86,7 +87,6 @@ def extract_session_id(**kwargs) -> str:
     Extracts the session ID from a 'baggage' header in a FastAPI Request object
     or directly from a 'headers' dict in kwargs.
     """
-    logger = logging.getLogger(__name__)
 
     session_id = None
     try:
@@ -120,8 +120,6 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
     Returns None if not found or if any error occurs.
     """
     try:
-        logger = logging.getLogger(__name__)
-
         request_body = kwargs.get("body")
         if request_body:
            
@@ -139,6 +137,21 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
 
 
 def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
+    """
+    Checks if a given endpoint URL is reachable within a specified timeout.
+    Args:
+        endpoint_url (str): The URL of the endpoint to check. Must include the hostname and optionally the port.
+        timeout (int, optional): The timeout duration in seconds for the connection attempt. Defaults to 3 seconds.
+    Returns:
+        bool: True if the endpoint is reachable, False otherwise.
+    Warnings:
+        - If the `endpoint_url` is empty, a warning is printed, and the function assumes the endpoint is unreachable.
+        - If the URL is malformed or cannot be parsed, a warning is printed, and the function assumes the endpoint is unreachable.
+        - If the connection attempt fails due to socket errors, timeouts, or connection refusals, a warning is printed with details.
+    Exceptions:
+        - Handles `socket.error`, `ConnectionRefusedError`, `socket.timeout`, and `ValueError` gracefully by printing warnings.
+        - Catches any other unexpected exceptions and prints a warning with the error details.
+    """
     if not endpoint_url:
         print("Warning: OTel endpoint URL is empty. Assuming unreachable.")
         return False
@@ -166,19 +179,32 @@ def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
         return False
 
 def add_session_id_to_span_attributes(**kwargs):
-	"""
-	Extracts the session ID from the `baggage` header in the provided kwargs and sets it as an association property for tracing.
-	Args:
-		kwargs (dict): A dictionary that may contain a 'headers' key with HTTP headers.
-	Returns:
-		None
-	"""
-	session_id = extract_session_id(**kwargs) or extract_session_id_from_body(**kwargs)
+    """
+    Adds a session ID to span attributes by extracting it from the provided keyword arguments.
 
-	if not session_id:
-		session_id = str(random.randint(10**15, 10**16 - 1))
-		print("[pulse_agent] No singlestore-session-id found in baggage.")
-	properties = {
-		SESSION_ID: session_id,
-	}
-	Traceloop.set_association_properties(properties)
+    This function attempts to extract a session ID using two methods:
+    1. `extract_session_id`: Extracts the session ID from the provided arguments.
+    2. `extract_session_id_from_body`: Extracts the session ID from the body of the provided arguments.
+
+    If no session ID is found, a debug log message is generated indicating that no session ID was found.
+    The extracted session ID is then added to the association properties using the `Traceloop.set_association_properties` method.
+
+    Args:
+        **kwargs: Arbitrary keyword arguments that may contain the session ID.
+
+    Logs:
+        Debug log if no session ID is found.
+
+    Side Effects:
+        Updates the association properties with the extracted session ID.
+
+    """
+
+    session_id = extract_session_id(**kwargs) or extract_session_id_from_body(**kwargs)
+
+    if not session_id:
+        logger.debug("[pulse_agent] No singlestore-session-id found")
+    properties = {
+        SESSION_ID: session_id,
+    }
+    Traceloop.set_association_properties(properties)
