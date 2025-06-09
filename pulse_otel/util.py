@@ -14,7 +14,6 @@ from pulse_otel.consts import (
 )
 from fastapi import Request, Response
 
-import random
 from traceloop.sdk import Traceloop
 
 logger = logging.getLogger(__name__)
