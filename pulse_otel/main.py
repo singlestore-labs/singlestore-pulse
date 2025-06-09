@@ -251,75 +251,49 @@ def pulse_tool(_func=None, *, name=None):
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
+import functools
+from opentelemetry import trace
+from opentelemetry.context import attach, detach
+from traceloop.sdk.decorators import agent
+from traceloop.sdk import Traceloop
+import logging
+
+logger = logging.getLogger(__name__)
+
 def pulse_agent(name):
-	"""
-	A decorator factory that wraps a function with additional tracing and session ID logic.
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            add_session_id_to_span_attributes(**kwargs)
+            logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
 
-	Args:
-		name (str): The name to be used for the agent decorator.
+            tracer = trace.get_tracer(__name__)
+            with tracer.start_as_current_span(name) as span:
+                # Set and attach current span context
+                ctx = trace.set_span_in_context(span)
+                token = attach(ctx)
 
-	Returns:
-		function: A decorator that wraps the target function, adding session ID to span attributes
-		before invoking the decorated agent function.
+                try:
+                    trace_id_hex = format(span.get_span_context().trace_id, "032x")
+                    span_id_hex = format(span.get_span_context().span_id, "016x")
+                    logger.info(f"[wrapper] Started span. TraceID: {trace_id_hex}, SpanID: {span_id_hex}")
 
-	Usage:
-		@pulse_agent("my_agent")
-		def my_function(...):
-			...
+                    # Apply agent decorator AFTER attaching context
+                    decorated_func = agent(name)(func)
 
-		@pulse_agent(name="my_agent")
-		def my_function(...):
-			...
-	"""
-	def decorator(func):
-		decorated_func = agent(name)(func)
+                    # Call decorated func under the current context
+                    result = decorated_func(*args, **kwargs)
 
-		@functools.wraps(func)
-		def wrapper(*args, **kwargs):
-			add_session_id_to_span_attributes(**kwargs)
-			logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
+                    # Attach trace info for external use
+                    Traceloop.set_association_properties({"my_trace_id": trace_id_hex})
+                    logger.info(f"Agent {name} executed with trace ID: {trace_id_hex}")
+                    return result
+                finally:
+                    detach(token)
+                    logger.info(f"After detach: {trace.get_current_span().get_span_context().span_id}")
+        return wrapper
+    return decorator
 
-			tracer = trace.get_tracer(__name__)
-			# trace_id_hex = None
-			# Start a new span for the agent function
-			with tracer.start_as_current_span(name) as span:
-				# Get current span and extract trace ID
-				ctx = trace.set_span_in_context(span)
-				token = attach(ctx)
-				
-				trace_id = span.get_span_context().trace_id
-				trace_id_hex = format(trace_id, "032x")
-				
-				current_span = trace.get_current_span()
-				logger.info(f"Current span inside context: {current_span.get_span_context().span_id}")
-				
-				result = decorated_func(*args, **kwargs)
-				properties = {
-					"my_trace_id": trace_id_hex
-				}
-				Traceloop.set_association_properties(properties)
-				logger.info(f"Agent {name} executed with trace ID: {trace_id_hex}")
-				detach(token)
-				logger.info(f"After detach: {trace.get_current_span().get_span_context().span_id}")
-				return result 
-				# Inject trace_id into the response
-				# if isinstance(result, dict):
-				# 	result["trace_id"] = trace_id
-				# 	return result
-				# elif hasattr(result, "dict") and callable(result.dict):
-				# 	result_dict = result.dict()
-				# 	result_dict["trace_id"] = trace_id
-				# 	return result.__class__(**result_dict)
-				# else:
-				# 	# fallback for non-dict results (e.g., strings, etc.)
-				# 	return {
-				# 		"result": result,
-				# 		"trace_id": trace_id
-				# 	}
-
-		return wrapper
-
-	return decorator
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
