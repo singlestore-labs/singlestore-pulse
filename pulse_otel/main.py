@@ -245,59 +245,77 @@ def pulse_tool(_func=None, *, name=None):
 		return decorator(_func)
 
 def pulse_agent(name):
-    def decorator(func):
-        @functools.wraps(func)
-        async def wrapper(*args, **kwargs):
-            add_session_id_to_span_attributes(**kwargs)
-            logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
-            tracer = trace.get_tracer(__name__)
-            
-            with tracer.start_as_current_span(name) as span:
-                # Get current context with the span
-                current_context = trace.set_span_in_context(span)
-                
-                trace_id_hex = format(span.get_span_context().trace_id, "032x")
-                logger.info(f"[wrapper] Started span. TraceID: {trace_id_hex}")
-                
-                # Run the decorated function within the context
-                decorated_func = agent(name)(func)
-                
-                # Ensure the async function runs in the correct context
-                import contextvars
-                result = await contextvars.copy_context().run(
-                    lambda: decorated_func(*args, **kwargs)
-                )
-                
-                logger.info(f"Agent {name} executed with trace ID: {trace_id_hex}")
-                return result
-        return wrapper
-    return decorator
+	"""
+	A decorator factory that wraps a function with additional tracing and session ID logic.
+
+	Args:
+		name (str): The name to be used for the agent decorator.
+
+	Returns:
+		function: A decorator that wraps the target function, adding session ID to span attributes
+		before invoking the decorated agent function.
+
+	Usage:
+		@pulse_agent("my_agent")
+		def my_function(...):
+			...
+
+		@pulse_agent(name="my_agent")
+		def my_function(...):
+			...
+	"""
+	def decorator(func):
+		decorated_func = agent(name)(func)
+
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			add_session_id_to_span_attributes(**kwargs)
+			return decorated_func(*args, **kwargs)
+
+		return wrapper
+
+	return decorator
 
 def s2_agent(name):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Capture the current context
-            ctx = copy_context()
-            
-            async def async_wrapper():
-                add_session_id_to_span_attributes(**kwargs)
-                tracer = trace.get_tracer(__name__)
-                
-                # Create new span within the async context
-                with tracer.start_as_current_span(name) as span:
-                    trace_id_hex = format(span.get_span_context().trace_id, "032x")
-                    logger.debug(f"[s2_agent wrapper] Started span. TraceID: {trace_id_hex}")
-                    
-				   # Execute decorated function and yield results
-                    decorated_func = agent(name)(func)
-                    async for item in decorated_func(*args, **kwargs):
-                        yield item
-                    
-            # Run the entire async generator in captured context
-            return ctx.run(async_wrapper)
-        return wrapper
-    return decorator
+	"""
+	s2_agent is a dedicated decorator for for event_generator function of s2ai framework that
+    wraps an asynchronous event_generator function to add tracing 
+	capabilities using OpenTelemetry. It captures the current context, creates 
+	a new span, and ensures that the decorated function is executed within the 
+	captured context.
+ 
+    This is being done to make sure parent context is rightfully captured and propagated in a sync function so that
+    the traceID of the current otel span is used is passed on the asynchronous generator function.
+	Args:
+		name (str): The name of the span to be created for tracing.
+	Returns:
+		Callable: A decorator that wraps the target asynchronous generator 
+		function, adding tracing and context management.
+	"""
+	def decorator(func):
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			# Capture the current context
+			ctx = copy_context()
+			
+			async def async_wrapper():
+				add_session_id_to_span_attributes(**kwargs)
+				tracer = trace.get_tracer(__name__)
+				
+				# Create new span within the async context
+				with tracer.start_as_current_span(name) as span:
+					trace_id_hex = format(span.get_span_context().trace_id, "032x")
+					logger.debug(f"[s2_agent wrapper] Started span. TraceID: {trace_id_hex}")
+					
+				# Execute decorated function and yield results
+					decorated_func = agent(name)(func)
+					async for item in decorated_func(*args, **kwargs):
+						yield item
+					
+			# Run the entire async generator in captured context
+			return ctx.run(async_wrapper)
+		return wrapper
+	return decorator
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
