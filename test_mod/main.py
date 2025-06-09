@@ -20,12 +20,8 @@ from contextvars import copy_context
 
 from functools import wraps
 import logging
-import typing
 
 from pulse_otel.util import (
-	get_environ_vars, 
-	form_otel_collector_endpoint, 
-	_is_endpoint_reachable,
 	add_session_id_to_span_attributes,
 	)
 from pulse_otel.consts import (

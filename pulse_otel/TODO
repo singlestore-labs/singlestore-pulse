@@ -1,0 +1,80 @@
+TODO
+
+1. Fast API - Session ID (header) -  attach it to TraceLoop (ashu wrapper)
+2. Fast API return - X-TRACE-ID as a response header
+3. logger init
+4. Send GRPC port 4317
+
+
+pulse.init()
+
+@singelstore.app(/chat)
+@traceloop.agent
+@pulse.anshuWrapper - "Attaches session to the traceloop "
+@pulse.addTraceIDToResponse
+func bigbrain() {
+   logger.debug()
+}
+
+pulse.init() {
+    // file loggeer
+    traceloop.init()
+    _logs etc etc
+}
+~ 
+
+
+************
+for someone using S2AI streaming framework for creating AI agents
+1. init pulse	
+	- it will init the logs and trace exporter by initing traceloop
+	- open question what happes when user does not provide name of tool -> sorted : traces uses the function name as tool name
+	- also user has to annotate tool using traceloop @tool annotation , can we create annotation for this wrapper.
+	- trace and logs exporter logic should be dynamic for testing based on changes in the code
+	- serialize logs file before writing to file
+	- how to make sure the traceID that we add in header is same traceID that is used in the logs and traces
+
+2. Create wrapper (traceloop association) for reading sessionID from header of http request and putting in association.
+3. Create a wrapper which will add the traceID to the response header. -> Vicky
+
+
+For someone creating AI agent from scratch using FastAPI and our Inference API
+1. all logic of initing pulse and traceloop will be same as above in @pulse.observe 
+
+
+curl --location 'https://apps.aws-virginia-nb2.svc.singlestore.com:8000/agents' \ --header 'Content-Type: application/json' \ --header 'Authorization: Bearer eyJhbGciOiJFUzUxMiIsImtpZCI6IjU3MTY4M2JlLTMzY2YtNGU2Ny1iY2NjLTg5MDVjMGViYjg2MiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2F1dGhzdmMuc2luZ2xlc3RvcmUuY29tL2F1dGgvb2lkYy9vcC9FbXBsb3llZSIsImF1ZCI6WyJwb3J0YWwiXSwiZXhwIjoxNzQ0ODMxMDA5LCJuYmYiOjE3NDQ4MjAyMDQsImlhdCI6MTc0NDgyMDIwOSwic3ViIjoiZGE2ZWVlYWUtYjE0Zi00ZjkxLWFkZmUtMThlNzBiMDk3NGQwIiwiZW1haWwiOiJhYW5zaHVAbWVtc3FsLmNvbSIsImdyb3VwcyI6WyJwb3J0YWwtY2x1c3Rlci1zdXBwb3J0LWVuZ2luZWVyIiwiaGVsaW9zLWNsdXN0ZXJpbmctdGVhbSIsImhlbGlvcy1iYWNrZW5kLW9uY2FsbCIsImhlbGlvcy1iYWNrZW5kLXJlYWRvbmx5IiwiZW5naW5lZXJpbmciLCJwb3J0YWwtY2x1c3Rlci1zdXBwb3J0IiwibW9uaXRvcmluZy1jdXN0b21lci1vbmNhbGwiLCJpcGF1c2VycyIsInBvcnRhbC1hZG1pbi1wcml2aWxlZ2VkLWVuZ2luZWVyIiwiaGVsaW9zLWJhY2tlbmQtdGVzdC1hY2NvdW50LWFkbWluIiwib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiIsImRlZmF1bHQtcm9sZXMtbWVtY29tcHV0ZSJdLCJpZHBJRCI6ImJhNWViYTExLWZhNTctY2E1Ny1jZWRlLWYwMDViYTExYmE1ZSIsImVtYWlsVmVyaWZpZWQiOnRydWUsInNzb1N1YmplY3QiOiJkYTZlZWVhZS1iMTRmLTRmOTEtYWRmZS0xOGU3MGIwOTc0ZDAiLCJ2YWxpZEZvclBvcnRhbCI6dHJ1ZSwicmVhZE9ubHkiOmZhbHNlfQ.APcRdt9_AUdX-fT5PrpsS3RTjfkgBIJPFruUnEEru9VWcZf3Es3ijnd-R_qW1fXB78A7viq9s7Ecw2EfEU1CXBgbAB5G5gB62Ap0LLB4t9umbseZxmISvIaokKAYTDGsbTD8DLrOi4gm6bMNCHWv3ijXDNx-KUIJuj4X-xpdSQgFoLn9' \
+--data '{ "projectID":"e003a14c-b9a6-4630-811c-0a13e04a568b",     "name": "aanshu-weather-agent",     "description": "Intelligent assistant for SingleStore Cloud platform",     "notebookPath": "e003a14c-b9a6-4630-811c-0a13e04a568b/_internal-s2-files/c875c06b-4ce7-4f9c-b277-9eebdc15e4ea" }'
+
+
+https://portal.singlestore.com/organizations/6179a453-89bc-4341-8885-287ada1e5dd8/develop/notebook/e003a14c-b9a6-4630-811c-0a13e04a568b%2F_internal-s2-files%2Fc875c06b-4ce7-4f9c-b277-9eebdc15e4ea?connectionID=b37ad604-6e8a-491c-ac46-5cc77f7be5db
+
+
+from langchain_core.tools import tool
+
+await s2ai.run(model=llm,
+               system_prompt='You are an Weather Agent. Only answer about weather information based on data retrived from tools provided.Do not answer anything else. If you fail to get data from tools, say so.'. 
+               tools=[get_weather])
+
+curl --location 'https://apps.aws-virginia-nb2.svc.singlestore.com:8000/agents' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJhbGciOiJFUzUxMiIsImtpZCI6IjhhNmVjNWFmLThlNWEtNDQxOS04NmM4LWRkMDkxN2U1YWNlMSIsInR5cCI6IkpXVCJ9.eyJhdHRyIjp7ImNvbXBhbnlOYW1lIjpbIlNpbmdsZVN0b3JlIl0sImNvdW50cnkiOlsiSU4iXSwiZ29hbCI6WyJleHBsb3JlIHRoZSBwcm9kdWN0Il0sImlkcEdvb2dsZSI6WyJ0cnVlIl0sImpvYlJvbGUiOlsib3RoZXIiXSwicHJvZHVjdCI6WyJjbG91ZCJdLCJ0ZXJtc19hbmRfY29uZGl0aW9ucyI6WyIxNzMxOTMzMzM5Il19LCJhdWQiOlsiMzYxYzc1YWUtZmM1My00OGU5LWIxYWMtODM4ZTJlOGNlMTBmIl0sImNsaWVudF9pZCI6IjM2MWM3NWFlLWZjNTMtNDhlOS1iMWFjLTgzOGUyZThjZTEwZiIsImVtYWlsIjoiYWFuc2h1QHNpbmds…dGkiOiI4Y2VhNWI4Mi1jOTQ5LTQzNzgtODVmMS1kM2NiMjU1MzhjZGUiLCJuYmYiOjE3NDQ4MjI4NTYsInNpZCI6IjgwNjQ1NjI3LTA4N2QtNGNkNy1hZWVhLTE3M2I3YzRiZDE1MyIsInNzb0RvbWFpbiI6InNpbmdsZXN0b3JlLmNvbSIsInNzb1N1YmplY3QiOiIwMHVjNWZ6YjJ2NVBUNmhlMjR4NyIsInN0Ijoib2lkYyIsInN1YiI6Ijk3OTEyNGFhLTQyZWMtNGU1ZC1iM2QyLThiMjkwZmYyNTIwNiIsInZhbGlkRm9yUG9ydGFsIjp0cnVlfQ.AMTrHJe34vS3VY-a4N1hp4n3l5cEmKfKGnWZECa_5H0i_EXvAFt0cuOQe8i2UF9ibveKRAs_q9Pi70PcqcfAxYiPAfwBUyqbvrfB31ZQccCBdWQh-3N1ZAoAJCgR-9rO1KDIas_ZI-pKQnXCuhaiRjB6_LdU2M_EeFIft2rc7_g7cCe8' \
+--data '{
+  "projectID": "e003a14c-b9a6-4630-811c-0a13e04a568b",
+  "name": "aanshu_weather_agent",
+  "description": "Intelligent assistant for SingleStore Cloud platform",
+  "notebookPath": "e003a14c-b9a6-4630-811c-0a13e04a568b/_internal-s2-files/c875c06b-4ce7-4f9c-b277-9eebdc15e4ea"
+}'
+
+
+https://portal.singlestore.com/organizations/6179a453-89bc-4341-8885-287ada1e5dd8/develop/notebook/e003a14c-b9a6-4630-811c-0a13e04a568b%2F_internal-s2-files%2Fc875c06b-4ce7-4f9c-b277-9eebdc15e4ea?connectionID=b37ad604-6e8a-491c-ac46-5cc77f7be5db
+
+
+WARNING:opentelemetry.exporter.otlp.proto.grpc.exporter:Transient error StatusCode.UNAVAILABLE encountered while exporting traces to otel-collector-deb42580-2c62-4bdc-b216-ef51efb92bc6.observability.svc.cluster.local:4317, retrying in 1s.
+
+
+Every time you want new revision update version in setup.py
+python3 setup.py sdist bdist_wheel  create a new versioned file
+twine upload  --repository pypi   dist/singlestore_pulse-0.6.4-py3-none-any.whl --user __token__ --verbose   this will upload the sdk on pypi . Takes a minute to be available
+
+
+twine upload  --repository pypi   dist/singlestore_pulse-0.6.6-py3-none-any.whl --user __token__ --verbose
