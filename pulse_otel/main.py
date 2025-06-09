@@ -281,6 +281,37 @@ def pulse_agent(name):
     return decorator
 
 
+from contextvars import copy_context
+
+def pulse_agent2(name):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Capture the current context
+            ctx = copy_context()
+            
+            async def async_wrapper():
+                add_session_id_to_span_attributes(**kwargs)
+                logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
+                tracer = trace.get_tracer(__name__)
+                
+                with tracer.start_as_current_span(name) as span:
+                    trace_id_hex = format(span.get_span_context().trace_id, "032x")
+                    logger.info(f"[wrapper] Started span. TraceID: {trace_id_hex}")
+                    
+                    decorated_func = agent(name)(func)
+                    
+                    # Run the generator in the captured context
+                    async for item in decorated_func(*args, **kwargs):
+                        yield item
+                    
+                    logger.info(f"Agent {name} completed with trace ID: {trace_id_hex}")
+            
+            return ctx.run(async_wrapper)
+        return wrapper
+    return decorator
+
+
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
         self.file_name = file_name
