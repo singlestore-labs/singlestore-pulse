@@ -277,45 +277,31 @@ def pulse_agent(name):
 	return decorator
 
 def s2_agent(name):
-	"""
-	s2_agent is a dedicated decorator for for event_generator function of s2ai framework that
-    wraps an asynchronous event_generator function to add tracing 
-	capabilities using OpenTelemetry. It captures the current context, creates 
-	a new span, and ensures that the decorated function is executed within the 
-	captured context.
- 
-    This is being done to make sure parent context is rightfully captured and propagated in a sync function so that
-    the traceID of the current otel span is used is passed on the asynchronous generator function.
-	Args:
-		name (str): The name of the span to be created for tracing.
-	Returns:
-		Callable: A decorator that wraps the target asynchronous generator 
-		function, adding tracing and context management.
-	"""
 	def decorator(func):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
-			# Capture the current context
 			ctx = copy_context()
-			
+			trace_callback = kwargs.pop("trace_callback", None)  # Accept optional callback
+
 			async def async_wrapper():
 				add_session_id_to_span_attributes(**kwargs)
 				tracer = trace.get_tracer(__name__)
 				
-				# Create new span within the async context
 				with tracer.start_as_current_span(name) as span:
 					trace_id_hex = format(span.get_span_context().trace_id, "032x")
 					logger.debug(f"[s2_agent wrapper] Started span. TraceID: {trace_id_hex}")
 					
-				# Execute decorated function and yield results
+					if trace_callback:
+						trace_callback(trace_id_hex)  # Notify the caller
+
 					decorated_func = agent(name)(func)
 					async for item in decorated_func(*args, **kwargs):
 						yield item
-					
-			# Run the entire async generator in captured context
+
 			return ctx.run(async_wrapper)
 		return wrapper
 	return decorator
+
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
