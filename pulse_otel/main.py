@@ -257,34 +257,28 @@ def pulse_agent(name):
         async def wrapper(*args, **kwargs):
             add_session_id_to_span_attributes(**kwargs)
             logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
-
             tracer = trace.get_tracer(__name__)
+            
             with tracer.start_as_current_span(name) as span:
-                # Set and attach current span context
-                ctx = trace.set_span_in_context(span)
-                token = attach(ctx)
-
-                try:
-                    trace_id_hex = format(span.get_span_context().trace_id, "032x")
-                    span_id_hex = format(span.get_span_context().span_id, "016x")
-                    logger.info(f"[wrapper] Started span. TraceID: {trace_id_hex}, SpanID: {span_id_hex}")
-
-                    # Apply agent decorator AFTER attaching context
-                    decorated_func = agent(name)(func)
-
-                    # Await the async function properly
-                    result = await decorated_func(*args, **kwargs)
-
-                    # Attach trace info for external use
-                    Traceloop.set_association_properties({"my_trace_id": trace_id_hex})
-                    logger.info(f"Agent {name} executed with trace ID: {trace_id_hex}")
-                    return result
-                finally:
-                    detach(token)
-                    logger.info(f"After detach: {trace.get_current_span().get_span_context().span_id}")
+                # Get current context with the span
+                current_context = trace.set_span_in_context(span)
+                
+                trace_id_hex = format(span.get_span_context().trace_id, "032x")
+                logger.info(f"[wrapper] Started span. TraceID: {trace_id_hex}")
+                
+                # Run the decorated function within the context
+                decorated_func = agent(name)(func)
+                
+                # Ensure the async function runs in the correct context
+                import contextvars
+                result = await contextvars.copy_context().run(
+                    lambda: decorated_func(*args, **kwargs)
+                )
+                
+                logger.info(f"Agent {name} executed with trace ID: {trace_id_hex}")
+                return result
         return wrapper
     return decorator
-
 
 
 class CustomFileSpanExporter(SpanExporter):
