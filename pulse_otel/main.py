@@ -276,7 +276,7 @@ def pulse_agent(name):
 
 	return decorator
 
-def s2_agent(name):
+def s2_agent1(name):
 	def decorator(func):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
