@@ -251,19 +251,10 @@ def pulse_tool(_func=None, *, name=None):
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
-import functools
-from opentelemetry import trace
-from opentelemetry.context import attach, detach
-from traceloop.sdk.decorators import agent
-from traceloop.sdk import Traceloop
-import logging
-
-logger = logging.getLogger(__name__)
-
 def pulse_agent(name):
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        async def wrapper(*args, **kwargs):
             add_session_id_to_span_attributes(**kwargs)
             logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
 
@@ -281,8 +272,8 @@ def pulse_agent(name):
                     # Apply agent decorator AFTER attaching context
                     decorated_func = agent(name)(func)
 
-                    # Call decorated func under the current context
-                    result = decorated_func(*args, **kwargs)
+                    # Await the async function properly
+                    result = await decorated_func(*args, **kwargs)
 
                     # Attach trace info for external use
                     Traceloop.set_association_properties({"my_trace_id": trace_id_hex})
@@ -293,6 +284,7 @@ def pulse_agent(name):
                     logger.info(f"After detach: {trace.get_current_span().get_span_context().span_id}")
         return wrapper
     return decorator
+
 
 
 class CustomFileSpanExporter(SpanExporter):
