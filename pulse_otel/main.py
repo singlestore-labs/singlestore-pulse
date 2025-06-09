@@ -2,12 +2,10 @@ import functools
 import os
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _logs, trace, context
+from opentelemetry import _logs, trace
 
 
-from opentelemetry.trace import get_current_span, INVALID_SPAN
-from opentelemetry.trace.span import Span
-from opentelemetry.context import attach, detach, get_current, set_value
+from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
@@ -17,13 +15,11 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
 )
-from fastapi import Request, Response
-from fastapi.responses import StreamingResponse
+
+from contextvars import copy_context
 
 from functools import wraps
-import uuid
 import logging
-from typing import Callable
 import typing
 
 from pulse_otel.util import (
@@ -35,11 +31,8 @@ from pulse_otel.util import (
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
-	SESSION_ID,
-	HEADER_INCOMING_SESSION_ID,
 	PROJECT,
 	LIVE_LOGS_FILE_PATH,
-	TRACEID_RESPONSE_HEADER,	
 )
 import logging
 
@@ -280,10 +273,7 @@ def pulse_agent(name):
         return wrapper
     return decorator
 
-
-from contextvars import copy_context
-
-def pulse_agent2(name):
+def s2_agent(name):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -292,25 +282,22 @@ def pulse_agent2(name):
             
             async def async_wrapper():
                 add_session_id_to_span_attributes(**kwargs)
-                logger.info(f"Executing agent: {name} with args: {args}, kwargs: {kwargs}")
                 tracer = trace.get_tracer(__name__)
                 
+                # Create new span within the async context
                 with tracer.start_as_current_span(name) as span:
                     trace_id_hex = format(span.get_span_context().trace_id, "032x")
-                    logger.info(f"[wrapper] Started span. TraceID: {trace_id_hex}")
+                    logger.debug(f"[s2_agent wrapper] Started span. TraceID: {trace_id_hex}")
                     
+				   # Execute decorated function and yield results
                     decorated_func = agent(name)(func)
-                    
-                    # Run the generator in the captured context
                     async for item in decorated_func(*args, **kwargs):
                         yield item
                     
-                    logger.info(f"Agent {name} completed with trace ID: {trace_id_hex}")
-            
+            # Run the entire async generator in captured context
             return ctx.run(async_wrapper)
         return wrapper
     return decorator
-
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):
