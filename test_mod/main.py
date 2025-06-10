@@ -21,10 +21,10 @@ from contextvars import copy_context
 from functools import wraps
 import logging
 
-from pulse_otel.util import (
+from test_mod.util import (
 	add_session_id_to_span_attributes,
 	)
-from pulse_otel.consts import (
+from test_mod.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
 	PROJECT,
