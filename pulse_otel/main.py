@@ -244,42 +244,44 @@ def pulse_tool(_func=None, *, name=None):
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
+# def pulse_agent(name):
+# 	"""
+# 	A decorator factory that wraps a function with additional tracing and session ID logic.
+
+# 	Args:
+# 		name (str): The name to be used for the agent decorator.
+
+# 	Returns:
+# 		function: A decorator that wraps the target function, adding session ID to span attributes
+# 		before invoking the decorated agent function.
+
+# 	Usage:
+# 		@pulse_agent("my_agent")
+# 		def my_function(...):
+# 			...
+
+# 		@pulse_agent(name="my_agent")
+# 		def my_function(...):
+# 			...
+# 	"""
+# 	def decorator(func):
+# 		decorated_func = agent(name)(func)
+
+# 		@functools.wraps(func)
+# 		def wrapper(*args, **kwargs):
+# 			add_session_id_to_span_attributes(**kwargs)
+# 			return decorated_func(*args, **kwargs)
+
+# 		return wrapper
+
+# 	return decorator
+
 def pulse_agent(name):
-	"""
-	A decorator factory that wraps a function with additional tracing and session ID logic.
-
-	Args:
-		name (str): The name to be used for the agent decorator.
-
-	Returns:
-		function: A decorator that wraps the target function, adding session ID to span attributes
-		before invoking the decorated agent function.
-
-	Usage:
-		@pulse_agent("my_agent")
-		def my_function(...):
-			...
-
-		@pulse_agent(name="my_agent")
-		def my_function(...):
-			...
-	"""
-	def decorator(func):
-		decorated_func = agent(name)(func)
-
-		@functools.wraps(func)
-		def wrapper(*args, **kwargs):
-			add_session_id_to_span_attributes(**kwargs)
-			return decorated_func(*args, **kwargs)
-
-		return wrapper
-
-	return decorator
-
-def pulse_agent2(name):
 	def decorator(func):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
+			logger.info(f"[s2_agent wrapper] hi")
+
 			ctx = copy_context()
 			trace_callback = kwargs.pop("trace_callback", None)  # Accept optional callback
 
