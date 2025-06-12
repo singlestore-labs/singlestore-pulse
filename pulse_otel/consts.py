@@ -2,6 +2,7 @@
 OTEL_COLLECTOR_ENDPOINT = "http://otel-collector-{PROJECTID_PLACEHOLDER}.observability.svc.cluster.local:4317"
 
 HEADER_INCOMING_SESSION_ID = "singlestore-session-id"
+TRACEID_RESPONSE_HEADER = "singlestore-trace-id"
 
 # Formatted attribute names
 APP_TYPE = "singlestore.nova.app.type"

@@ -2,7 +2,8 @@ import functools
 import os
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _logs
+from opentelemetry import _logs, trace
+
 
 from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
@@ -14,13 +15,11 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
 )
-from fastapi import Request, Response
-from fastapi.responses import JSONResponse
+
+from contextvars import copy_context
 
 from functools import wraps
-import uuid
 import logging
-from typing import Callable
 import typing
 
 from pulse_otel.util import (
@@ -32,14 +31,14 @@ from pulse_otel.util import (
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
-	SESSION_ID,
-	HEADER_INCOMING_SESSION_ID,
 	PROJECT,
 	LIVE_LOGS_FILE_PATH,
 )
 import logging
 
 _pulse_instance = None
+logger = logging.getLogger(__name__)
+
 
 class Pulse:
 	def __init__(
@@ -202,35 +201,6 @@ class Pulse:
 		logging.root.addHandler(handler)
 		return log_exporter
 
-	def add_traceid_header(self, func: Callable) -> Callable:
-		@wraps(func)
-		async def wrapper(request: Request, *args, **kwargs) -> Response:
-			# Generate unique trace ID
-			trace_id = str(uuid.uuid4())
-
-			# Extract session ID from request headers if present
-			session_id = request.headers.get("X-SINGLESTORE-AI-SESSION-ID", "N/A")
-
-			try:
-				# Execute the original function
-				result = await func(request, *args, **kwargs)
-
-				# If result is already a Response object
-				if isinstance(result, Response):
-					result.headers["X-SINGLESTORE-TRACE-ID"] = trace_id
-					return result
-
-				return JSONResponse(
-					content=result,
-					headers={"X-SINGLESTORE-TRACE-ID": trace_id}
-				)
-
-			except Exception as e:
-				raise e
-
-		return wrapper
-
-
 def pulse_tool(_func=None, *, name=None):
 	"""
 	Decorator to register a function as a tool. Can be used as @pulse_tool, @pulse_tool("name"), or @pulse_tool(name="name").
@@ -274,37 +244,66 @@ def pulse_tool(_func=None, *, name=None):
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
+# def pulse_agent(name):
+# 	"""
+# 	A decorator factory that wraps a function with additional tracing and session ID logic.
+
+# 	Args:
+# 		name (str): The name to be used for the agent decorator.
+
+# 	Returns:
+# 		function: A decorator that wraps the target function, adding session ID to span attributes
+# 		before invoking the decorated agent function.
+
+# 	Usage:
+# 		@pulse_agent("my_agent")
+# 		def my_function(...):
+# 			...
+
+# 		@pulse_agent(name="my_agent")
+# 		def my_function(...):
+# 			...
+# 	"""
+# 	def decorator(func):
+# 		decorated_func = agent(name)(func)
+
+# 		@functools.wraps(func)
+# 		def wrapper(*args, **kwargs):
+# 			add_session_id_to_span_attributes(**kwargs)
+# 			return decorated_func(*args, **kwargs)
+
+# 		return wrapper
+
+# 	return decorator
+
 def pulse_agent(name):
-	"""
-	A decorator factory that wraps a function with additional tracing and session ID logic.
-
-	Args:
-		name (str): The name to be used for the agent decorator.
-
-	Returns:
-		function: A decorator that wraps the target function, adding session ID to span attributes
-		before invoking the decorated agent function.
-
-	Usage:
-		@pulse_agent("my_agent")
-		def my_function(...):
-			...
-
-		@pulse_agent(name="my_agent")
-		def my_function(...):
-			...
-	"""
 	def decorator(func):
-		decorated_func = agent(name)(func)
-
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
-			add_session_id_to_span_attributes(**kwargs)
-			return decorated_func(*args, **kwargs)
+			logger.info(f"[s2_agent wrapper] hi")
 
+			ctx = copy_context()
+			trace_callback = kwargs.pop("trace_callback", None)  # Accept optional callback
+
+			async def async_wrapper():
+				add_session_id_to_span_attributes(**kwargs)
+				tracer = trace.get_tracer(__name__)
+				
+				with tracer.start_as_current_span(name) as span:
+					trace_id_hex = format(span.get_span_context().trace_id, "032x")
+					logger.debug(f"[s2_agent wrapper] Started span. TraceID: {trace_id_hex}")
+					
+					if trace_callback:
+						trace_callback(trace_id_hex)  # Notify the caller
+
+					decorated_func = agent(name)(func)
+					async for item in decorated_func(*args, **kwargs):
+						yield item
+
+			return ctx.run(async_wrapper)
 		return wrapper
-
 	return decorator
+
 
 class CustomFileSpanExporter(SpanExporter):
     def __init__(self, file_name):

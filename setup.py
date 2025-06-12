@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
     
 setup(
     name='singlestore_pulse',
-    version='0.1',
+    version='0.1.0.1',
     packages=find_packages(),
     description='Singlestore Python SDK for OpenTelemetry Integration',
     long_description=open('README.md').read(),
