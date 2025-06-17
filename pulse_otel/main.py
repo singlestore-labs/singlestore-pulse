@@ -41,6 +41,9 @@ import logging
 
 _pulse_instance = None
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 class Pulse:
 	def __init__(
 		self,
@@ -77,7 +80,7 @@ class Pulse:
 		global _pulse_instance
 
 		if _pulse_instance is not None:
-			print("Pulse instance already exists. Skipping initialization.")
+			logger.debug("Pulse instance already exists. Skipping initialization.")
 			# Copy the existing instance's attributes to this instance
 			self.__dict__.update(_pulse_instance.__dict__)
 			return
@@ -132,7 +135,7 @@ class Pulse:
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
 				if not _is_endpoint_reachable(otel_collector_endpoint):
-					print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+					logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
 					return
 
 				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
@@ -162,11 +165,11 @@ class Pulse:
 					telemetry_enabled=False,
 				)
 		except Exception as e:
-			print(f"Error initializing Pulse: {e}")
+			logger.error(f"Error initializing Pulse: {e}")
 		
 		# Set the global instance
 		_pulse_instance = self
-		print("Pulse initialized successfully.")
+		logger.info("Pulse initialized successfully.")
 
 	def enable_content_tracing(self, enabled: bool = True):
 		"""
@@ -351,17 +354,10 @@ def get_jsonl_file_exporter():
 	"""
 	jsonl_log_file_path = get_jsonl_log_file_path()
 	if jsonl_log_file_path is not None and jsonl_log_file_path != "" and os.path.exists(os.path.dirname(jsonl_log_file_path)):
-		print(f"Logging to file: {jsonl_log_file_path}")
+		logger.debug(f"Logging to file: {jsonl_log_file_path}")
 		return JSONLFileLogExporter(jsonl_log_file_path)
-	print("No JSON log file provided. Skipping JSON log export.")
+	logger.debug("No JSON log file provided. Skipping JSON log export.")
 	return None
-
-def healthcheckpulse():
-	return {
-		"status": "ok",
-		"message": "Pulse is running",
-		"version": "1.0.0",
-	}
 
 class JSONLFileLogExporter(LogExporter):
 	def __init__(self, file_path):
@@ -369,7 +365,7 @@ class JSONLFileLogExporter(LogExporter):
 		try:
 			self.f = open(self.file_path, 'a', encoding='utf-8')
 		except Exception as e:
-			print(f"Failed to open file {self.file_path}: {e}")
+			logger.error(f"Failed to open file {self.file_path}: {e}")
 			self.f = None
 
 	def export(self, batch: typing.Sequence[LogData]) -> LogExportResult:
@@ -381,7 +377,7 @@ class JSONLFileLogExporter(LogExporter):
 				self.f.flush()
 			return LogExportResult.SUCCESS
 		except Exception as e:
-			print(f"Failed to write to file {self.file_path}: {e}")
+			logger.error(f"Failed to write to file {self.file_path}: {e}")
 			return LogExportResult.FAILURE
 
 	def shutdown(self):

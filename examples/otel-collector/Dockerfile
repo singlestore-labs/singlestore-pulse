@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip3 install git+https://github.com/singlestore-labs/singlestore-pulse.git@aanshu/sessionID
+RUN pip3 install git+https://github.com/singlestore-labs/singlestore-pulse.git@master
 
 COPY main.py .
 COPY .env .

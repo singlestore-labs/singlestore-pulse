@@ -111,7 +111,7 @@ def get_funny_timestamp_phrase(funny_timestamp):
 
 # Simple agent function to process user input and decide on tool use
 @app.post("/agent/run")
-@pulse_agent()
+@pulse_agent("MyDockerTimeAgent")
 def agent_run(request: Request, body: AgentRunRequest):  # Changed back to sync function
     try:
         prompt = body.prompt
