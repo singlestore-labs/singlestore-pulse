@@ -41,7 +41,7 @@ import logging
 
 _pulse_instance = None
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Pulse:
@@ -80,7 +80,7 @@ class Pulse:
 		global _pulse_instance
 
 		if _pulse_instance is not None:
-			logger.debug("Pulse instance already exists. Skipping initialization.")
+			logger.info("Pulse instance already exists. Skipping initialization.")
 			# Copy the existing instance's attributes to this instance
 			self.__dict__.update(_pulse_instance.__dict__)
 			return
@@ -354,9 +354,9 @@ def get_jsonl_file_exporter():
 	"""
 	jsonl_log_file_path = get_jsonl_log_file_path()
 	if jsonl_log_file_path is not None and jsonl_log_file_path != "" and os.path.exists(os.path.dirname(jsonl_log_file_path)):
-		logger.debug(f"Logging to file: {jsonl_log_file_path}")
+		logger.info(f"Logging to file: {jsonl_log_file_path}")
 		return JSONLFileLogExporter(jsonl_log_file_path)
-	logger.debug("No JSON log file provided. Skipping JSON log export.")
+	logger.info("No JSON log file provided. Skipping JSON log export.")
 	return None
 
 class JSONLFileLogExporter(LogExporter):

@@ -204,6 +204,7 @@ def add_session_id_to_span_attributes(**kwargs):
 
     if not session_id:
         logger.debug("[pulse_agent] No singlestore-session-id found")
+        return
     properties = {
         SESSION_ID: session_id,
     }
