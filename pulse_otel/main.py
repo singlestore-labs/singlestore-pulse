@@ -354,9 +354,9 @@ def get_jsonl_file_exporter():
 	"""
 	jsonl_log_file_path = get_jsonl_log_file_path()
 	if jsonl_log_file_path is not None and jsonl_log_file_path != "" and os.path.exists(os.path.dirname(jsonl_log_file_path)):
-		logger.info(f"Logging to file: {jsonl_log_file_path}")
+		logger.debug(f"Logging to file: {jsonl_log_file_path}")
 		return JSONLFileLogExporter(jsonl_log_file_path)
-	logger.info("No JSON log file provided. Skipping JSON log export.")
+	logger.debug("No JSON log file provided. Skipping JSON log export.")
 	return None
 
 class JSONLFileLogExporter(LogExporter):
