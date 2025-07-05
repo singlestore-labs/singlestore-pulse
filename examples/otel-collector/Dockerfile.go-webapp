@@ -1,0 +1,16 @@
+FROM golang:1.22-alpine
+
+WORKDIR /app
+
+# Copy the entire pulse_go_otel_instrumentor directory to maintain package structure
+COPY ./pulse_go_otel_instrumentor/ ./
+
+# Download dependencies
+RUN go mod download
+
+# Build the main application from the main subdirectory
+RUN go build -o main ./main
+
+EXPOSE 8093
+
+CMD ["./main/main"]
