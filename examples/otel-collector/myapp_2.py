@@ -2,6 +2,8 @@ from dotenv import load_dotenv
 import os
 import datetime
 import json
+import requests
+
 from fastapi import FastAPI, HTTPException
 from fastapi import Request
 import uvicorn
@@ -22,6 +24,11 @@ app = FastAPI(title="My time agent", description="A FastAPI app that uses Pulse 
 class AgentRunRequest(BaseModel):
     prompt: str
     session_id: str = None  # Optional session ID
+
+class Item(BaseModel):
+    id: int
+    name: str
+    price: float
 
 logger = logging.getLogger("myapp")
 logger.setLevel(logging.DEBUG)
@@ -172,11 +179,114 @@ def health_check():
 def root():
     return {"message": "Welcome to the Pulse OTel FastAPI agent!"}
 
+# @pulse_agent("getdata")
+@app.post("/getdata")
+def cftocf_endpoint(request: Request, body: Item):
+    """
+    This is the target endpoint that myapp will call.
+    It processes Item data and returns a response.
+    """
+    try:
+        logger.info(f"Received getdata request for item: {body.name} with id: {body.id}")
+
+        # Process the item (you can add your business logic here)
+        processed_data = {
+            "message": f"Successfully processed item: {body.name}",
+            "item_id": body.id,
+            "item_name": body.name,
+            "item_price": body.price,
+            "processed_at": datetime.datetime.now().isoformat(),
+            "status": "success"
+        }
+        
+        logger.info(f"Successfully processed item {body.id}")
+        return processed_data
+        
+    except Exception as e:
+        logger.error(f"Error in cftocf endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process item: {str(e)}")
+
+def http_req(body: Item):
+    """
+    Makes an HTTP request to the myapp_2 service at the /cftocf endpoint.
+    """
+    url = "http://myapp:8000/go_py_py"
+    
+    data = {
+        "name": body.name,
+        "price": body.price,
+        "id": body.id
+    }
+    
+    # Set headers
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        # Make the POST request with timeout
+        response = requests.post(url, json=data, headers=headers, timeout=30)
+        
+        # Check if the request was successful
+        response.raise_for_status()
+        
+        # Log successful response
+        logger.info(f"HTTP request to myapp_2 successful. Status Code: {response.status_code}")
+        
+        return {
+            "status": "success",
+            "status_code": response.status_code,
+            "response": response.json() if response.headers.get('content-type', '').startswith('application/json') else response.text
+        }
+        
+    except requests.exceptions.Timeout:
+        logger.error("HTTP request to myapp_2 timed out")
+        raise HTTPException(status_code=504, detail="Request to myapp_2 service timed out")
+    
+    except requests.exceptions.ConnectionError:
+        logger.error("Failed to connect to myapp_2 service")
+        raise HTTPException(status_code=502, detail="Failed to connect to myapp_2 service")
+    
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"HTTP error occurred when calling myapp_2: {e}")
+        raise HTTPException(status_code=response.status_code, detail=f"myapp_2 service error: {response.text}")
+    
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error occurred when calling myapp_2: {e}")
+        raise HTTPException(status_code=500, detail="Failed to make request to myapp_2 service")
+
+# @pulse_agent("getdata")
+@app.post("/go_py_py")
+def cftocf_endpoint(request: Request, body: Item):
+    """
+    This is the target endpoint that myapp will call.
+    It processes Item data and returns a response.
+    """
+    try:
+        logger.info(f"Received go_py_py request for item: {body.name} with id: {body.id}")
+
+        # Process the item (you can add your business logic here)
+        processed_data = {
+            "id": body.id,
+            "name": body.name,
+            "price": body.price,
+        }
+        
+        logger.info(f"Successfully processed item {body.id}")
+
+
+
+        return http_req(body)
+        
+    except Exception as e:
+        logger.error(f"Error in cftocf endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process item: {str(e)}")
+
 def main():
     # write to otel collector 
-    _ = Pulse(
-        otel_collector_endpoint="http://otel-collector:4317",
-    )
+    # _ = Pulse(
+    #     otel_collector_endpoint="http://otel-collector:4317",
+    # )
 
     # Create a FastAPI app
     uvicorn.run(app, host="0.0.0.0", port=8000)
