@@ -1,8 +1,17 @@
 import functools
 import os
+import uuid
+import logging
+import typing
+from typing import Callable, Any, Awaitable
+
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
 from opentelemetry import _logs
+
+from opentelemetry import trace
+from opentelemetry.propagate import extract
+from opentelemetry.trace import SpanKind
 
 from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
@@ -18,10 +27,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 from functools import wraps
-import uuid
-import logging
-from typing import Callable
-import typing
+
 
 from pulse_otel.util import (
 	get_environ_vars, 
@@ -43,6 +49,8 @@ _pulse_instance = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+tracer = trace.get_tracer(__name__)
 
 class Pulse:
 	def __init__(
@@ -304,6 +312,62 @@ def pulse_agent(name):
 		def wrapper(*args, **kwargs):
 			add_session_id_to_span_attributes(**kwargs)
 			return decorated_func(*args, **kwargs)
+
+		return wrapper
+
+	return decorator
+
+
+def observe(name):
+	"""
+	A decorator factory that instruments a function for observability using opentelemetry tracing.
+	Args:
+		name (str): The name of the span to be created for tracing.
+	Returns:
+		Callable: A decorator that wraps the target function, extracting opentelemetry tracing context
+		from the incoming request (if available), and starts a new tracing span using
+		the provided name. If no context is found, a new span is started without context.
+	Behavior:
+		- Adds session ID to span attributes if available in kwargs.
+		- Attempts to extract a tracing context from the 'request' argument or from positional arguments.
+		- Starts a tracing span with the extracted context (if present) or as a new trace.
+		- Logs debug information about the tracing context and span creation.
+		- Supports usage both within and outside of HTTP request contexts.
+	Example:
+		@observe("my_function_span")
+		def my_function(request: Request, ...):
+			...
+	"""
+	def decorator(func):
+		decorated_func = agent(name)(func)
+		logger.debug("Decorating function with observe:", name)
+
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			add_session_id_to_span_attributes(**kwargs)
+			request: Request = kwargs.get("request")
+			if request is None:
+				for arg in args:
+					if isinstance(arg, Request):
+						request = arg
+						break
+
+			# Extract context from request if available
+			ctx = extract(request.headers) if request else None
+
+			if ctx:
+				logger.debug(f"Starting span with context: {ctx}")
+				# Start span with context
+				with tracer.start_as_current_span(name, context=ctx, kind=SpanKind.SERVER):
+					return decorated_func(*args, **kwargs)
+			else:
+				logger.debug("No context found, starting span without context.")
+				
+				# Start span without context
+				# This is useful for cases where we want to start a span without any specific context
+				# e.g., when the function is called outside of an HTTP request context
+				# or when we want to create a fresh new trace or context is not properly propagated.
+				return decorated_func(*args, **kwargs)
 
 		return wrapper
 
