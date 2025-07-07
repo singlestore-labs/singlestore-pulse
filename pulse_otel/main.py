@@ -41,7 +41,7 @@ import logging
 
 _pulse_instance = None
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO,handlers=[LoggingHandler()])
 logger = logging.getLogger(__name__)
 
 class Pulse:
@@ -113,7 +113,6 @@ class Pulse:
 					log_provider = LoggerProvider()
 					_logs.set_logger_provider(log_provider)
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
-					logging.root.addHandler(LoggingHandler()) # add filehandler to root logger
 			else:
 				if otel_collector_endpoint is None:
 					try:
