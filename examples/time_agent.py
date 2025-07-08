@@ -7,7 +7,7 @@ from openai import OpenAI
 
 from opentelemetry.sdk._logs import LoggingHandler
 
-from pulse_otel import Pulse, pulse_agent, pulse_tool
+from pulse_otel import Pulse, pulse_agent, pulse_tool, observe
 
 import logging
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -102,7 +102,7 @@ def get_funny_timestamp_phrase(funny_timestamp):
     
 # Simple agent function to process user input and decide on tool use
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
-@pulse_agent(name="MyAgentName")
+@observe(name="MyAgentName")
 def agent_run(prompt):
     messages = [{"role": "user", "content": prompt}]
     
