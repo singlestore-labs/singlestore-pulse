@@ -4,11 +4,30 @@ services:
   myapp:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.myapp
     ports:
       - "8007:8000"
     depends_on:
       - otel-collector
+    networks:
+      - otel-network
+  myapp_2:
+    build:
+      context: .
+      dockerfile: Dockerfile.myapp_2
+    ports:
+      - "8008:8000"
+    depends_on:
+      - otel-collector
+    networks:
+      - otel-network
+
+  go-webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.go-webapp
+    ports:
+      - "8009:8093"
     networks:
       - otel-network
 
