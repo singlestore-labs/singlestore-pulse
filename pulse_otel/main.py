@@ -24,8 +24,8 @@ from typing import Callable
 import typing
 
 from pulse_otel.util import (
-	get_environ_vars, 
-	form_otel_collector_endpoint, 
+	get_environ_vars,
+	form_otel_collector_endpoint,
 	_is_endpoint_reachable,
 	add_session_id_to_span_attributes,
 	)
@@ -57,12 +57,12 @@ class Pulse:
 		Initializes the main class with configuration for logging and tracing.
 
 		Args:
-			write_to_file (bool): Determines whether to write logs and traces to a file. 
+			write_to_file (bool): Determines whether to write logs and traces to a file.
 								  If False, logs and traces are sent to an OpenTelemetry collector.
 								  Defaults to False.This mode is for local development.
 			write_to_traceloop (bool): Determines whether to send logs and traces to Traceloop.
 			api_key (str): The API key for Traceloop. Required if `write_to_traceloop` is True.
-			otel_collector_endpoint (str): The endpoint for the OpenTelemetry collector. 
+			otel_collector_endpoint (str): The endpoint for the OpenTelemetry collector.
 			only_live_logs (bool): If True, only live logs are captured and sent to a JSONL file.
 								   This is useful for debugging and development purposes.
 
@@ -113,7 +113,7 @@ class Pulse:
 					log_provider = LoggerProvider()
 					_logs.set_logger_provider(log_provider)
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
-					logging.basicConfig(level=logging.INFO, handlers=[LoggingHandler()])
+					logging.root.addHandler(LoggingHandler()) # add filehandler to root logger
 			else:
 				if otel_collector_endpoint is None:
 					try:
@@ -166,7 +166,7 @@ class Pulse:
 				)
 		except Exception as e:
 			logger.error(f"Error initializing Pulse: {e}")
-		
+
 		# Set the global instance
 		_pulse_instance = self
 		logger.info("Pulse initialized successfully.")
@@ -174,7 +174,7 @@ class Pulse:
 	def enable_content_tracing(self, enabled: bool = True):
 		"""
 		Enables or disables content tracing by attaching a context variable.
-		Sets a key called override_enable_content_tracing in the OpenTelemetry context to True right before 
+		Sets a key called override_enable_content_tracing in the OpenTelemetry context to True right before
 		making the LLM call you want to trace with prompts. This will create a new context that will instruct instrumentations to log prompts and completions as span attributes.
 
 		Args:
