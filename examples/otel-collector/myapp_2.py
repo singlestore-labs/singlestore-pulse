@@ -13,7 +13,7 @@ from openai import OpenAI
 
 from opentelemetry.sdk._logs import LoggingHandler
 
-from pulse_otel import Pulse, pulse_agent, pulse_tool
+from pulse_otel import Pulse, pulse_agent, pulse_tool, observe
 
 import logging
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -179,7 +179,7 @@ def health_check():
 def root():
     return {"message": "Welcome to the Pulse OTel FastAPI agent!"}
 
-# @pulse_agent("getdata")
+@pulse_agent("getdata")
 @app.post("/getdata")
 def cftocf_endpoint(request: Request, body: Item):
     """
@@ -255,8 +255,9 @@ def http_req(body: Item):
         logger.error(f"Request error occurred when calling myapp_2: {e}")
         raise HTTPException(status_code=500, detail="Failed to make request to myapp_2 service")
 
-# @pulse_agent("getdata")
+
 @app.post("/go_py_py")
+@observe("cftocf_endpoint")
 def cftocf_endpoint(request: Request, body: Item):
     """
     This is the target endpoint that myapp will call.
@@ -284,9 +285,9 @@ def cftocf_endpoint(request: Request, body: Item):
 
 def main():
     # write to otel collector 
-    # _ = Pulse(
-    #     otel_collector_endpoint="http://otel-collector:4317",
-    # )
+    _ = Pulse(
+        otel_collector_endpoint="http://otel-collector:4317",
+    )
 
     # Create a FastAPI app
     uvicorn.run(app, host="0.0.0.0", port=8000)

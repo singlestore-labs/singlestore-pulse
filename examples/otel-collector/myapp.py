@@ -326,9 +326,9 @@ def cftocf_endpoint(request: Request, body: Item):
 
 def main():
     # write to otel collector 
-    _ = Pulse(
-        otel_collector_endpoint="http://otel-collector:4317",
-    )
+    # _ = Pulse(
+    #     otel_collector_endpoint="http://otel-collector:4317",
+    # )
 
     # Create a FastAPI app
     uvicorn.run(app, host="0.0.0.0", port=8000)
