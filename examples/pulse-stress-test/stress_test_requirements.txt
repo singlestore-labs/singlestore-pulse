@@ -1,0 +1,15 @@
+# Additional requirements for stress testing
+# Install with: pip install -r stress_test_requirements.txt
+
+# For system monitoring during stress tests
+psutil>=5.9.0
+
+# For HTTP requests to collector metrics endpoint  
+requests>=2.25.0
+
+# For enhanced concurrent execution (optional)
+asyncio-pool>=0.6.0
+
+# For data analysis of stress test results (optional)
+pandas>=1.3.0
+matplotlib>=3.3.0
