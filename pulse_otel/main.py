@@ -179,16 +179,26 @@ class Pulse:
 		_pulse_instance = self
 		logger.info("Pulse initialized successfully.")
 
-	def enable_content_tracing(self, enabled: bool = True):
+	@staticmethod
+	def enable_content_tracing(enabled: bool = True):
 		"""
 		Enables or disables content tracing by attaching a context variable.
 		Sets a key called override_enable_content_tracing in the OpenTelemetry context to True right before
 		making the LLM call you want to trace with prompts. This will create a new context that will instruct instrumentations to log prompts and completions as span attributes.
 
+		With Traceloop, we set the environment variable `TRACELOOP_CONTENT_TRACING` to 'true' or 'false' based on the enabled parameter.
 		Args:
 			enabled (bool): A flag to enable or disable content tracing. Defaults to True.
 		"""
 		attach(set_value("override_enable_content_tracing", enabled))
+
+		if enabled:
+			logger.info("Content tracing enabled. Prompts and completions will be logged as span attributes.")
+			os['TRACELOOP_CONTENT_TRACING'] = 'true'
+		else:
+			logger.info("Content tracing disabled. Prompts and completions will not be logged as span attributes.")
+			os['TRACELOOP_CONTENT_TRACING'] = 'false'
+
 
 	def init_log_provider(self):
 		"""
@@ -242,13 +252,14 @@ class Pulse:
 		return wrapper
 
 
-def pulse_tool(_func=None, *, name=None):
+def pulse_tool(_func=None, *, name=None, enable_content_tracing=True):
 	"""
 	Decorator to register a function as a tool. Can be used as @pulse_tool, @pulse_tool("name"), or @pulse_tool(name="name").
 	If no argument is passed, uses the function name as the tool name.
 	Args:
 		_func: The function to be decorated.
 		name: Optional name for the tool. If not provided, the function name is used.
+		enable_content_tracing: Whether to enable content tracing for this tool. Defaults to False.
 	Returns:
 		A decorator that registers the function as a tool with the specified name.
 
@@ -261,17 +272,21 @@ def pulse_tool(_func=None, *, name=None):
 		def my_function():
 			# Function implementation
 
-		@pulse_tool(name="my_tool")
+		@pulse_tool(name="my_tool", enable_content_tracing=True)
 		def my_function():
 			# Function implementation
 	"""
 	def decorator(func):
 		tool_name = name or func.__name__
 		decorated_func = tool(tool_name)(func)
-		return decorated_func
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			Pulse.enable_content_tracing(enable_content_tracing)
+			return decorated_func(*args, **kwargs)
+		return wrapper
 
 	if _func is None:
-		# Called as @pulse_tool() or @pulse_tool(name="...")
+		# Called as @pulse_tool() or @pulse_tool(name="...", enable_content_tracing=...)
 		return decorator
 	elif isinstance(_func, str):
 		# Called as @pulse_tool("name") - this is actually the old pattern
@@ -279,18 +294,23 @@ def pulse_tool(_func=None, *, name=None):
 		def wrapper(func):
 			tool_name = _func
 			decorated_func = tool(tool_name)(func)
-			return decorated_func
+			@functools.wraps(func)
+			def inner_wrapper(*args, **kwargs):
+				Pulse.enable_content_tracing(enable_content_tracing)
+				return decorated_func(*args, **kwargs)
+			return inner_wrapper
 		return wrapper
 	else:
 		# Called as @pulse_tool (without parentheses)
 		return decorator(_func)
 
-def pulse_agent(name):
+def pulse_agent(name, enable_content_tracing=True):
 	"""
 	A decorator factory that wraps a function with additional tracing and session ID logic.
 
 	Args:
 		name (str): The name to be used for the agent decorator.
+		enable_content_tracing (bool): Whether to enable content tracing for this agent. Defaults to False.
 
 	Returns:
 		function: A decorator that wraps the target function, adding session ID to span attributes
@@ -301,7 +321,7 @@ def pulse_agent(name):
 		def my_function(...):
 			...
 
-		@pulse_agent(name="my_agent")
+		@pulse_agent(name="my_agent", enable_content_tracing=True)
 		def my_function(...):
 			...
 	"""
@@ -311,6 +331,7 @@ def pulse_agent(name):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			add_session_id_to_span_attributes(**kwargs)
+			Pulse.enable_content_tracing(enable_content_tracing)
 			return decorated_func(*args, **kwargs)
 
 		return wrapper
