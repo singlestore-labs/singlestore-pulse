@@ -194,10 +194,10 @@ class Pulse:
 
 		if enabled:
 			logger.info("Content tracing enabled. Prompts and completions will be logged as span attributes.")
-			os['TRACELOOP_CONTENT_TRACING'] = 'true'
+			os.environ['TRACELOOP_CONTENT_TRACING'] = 'true'
 		else:
 			logger.info("Content tracing disabled. Prompts and completions will not be logged as span attributes.")
-			os['TRACELOOP_CONTENT_TRACING'] = 'false'
+			os.environ['TRACELOOP_CONTENT_TRACING'] = 'false'
 
 
 	def init_log_provider(self):
