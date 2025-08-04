@@ -7,6 +7,10 @@ receivers:
         endpoint: "0.0.0.0:4318"
 
 exporters:
+  otlp:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
   debug: {}  # For debugging telemetry data in the console
 
   # prometheus:
@@ -34,7 +38,7 @@ service:
 
     traces:
       receivers: [otlp]
-      exporters: [file/traces]  # Zipkin exporter will send to Jaeger
+      exporters: [file/traces, otlp]  # Zipkin exporter will send to Jaeger
   telemetry:
       logs:
         level: debug
