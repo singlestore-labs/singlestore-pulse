@@ -3,6 +3,7 @@ import os
 import uuid
 import logging
 import typing
+import time
 from typing import Callable, Any, Awaitable
 
 from traceloop.sdk import Traceloop
@@ -85,7 +86,8 @@ class Pulse:
 				- Initializes a custom log provider for file-based logging.
 				- Initializes Traceloop with a custom file span exporter and resource attributes.
 		"""
-
+		start_time = time.time()
+		
 		global _pulse_instance
 
 		if _pulse_instance is not None:
@@ -185,7 +187,8 @@ class Pulse:
 
 		# Set the global instance
 		_pulse_instance = self
-		logger.info("Pulse initialized successfully.")
+		end_time = time.time()
+		logger.info(f"Pulse initialized successfully in {end_time - start_time:.2f} seconds.")
 
 	@staticmethod
 	def enable_content_tracing(enabled: bool = True):
