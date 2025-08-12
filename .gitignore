@@ -4,5 +4,9 @@ __pycache__/
 .python-version
 build/
 *.egg-info/
-traceloop_traces.json
-traceloop_logs.txt
+pulse_traces.json
+pulse_logs.txt
+# Ignore any .env files
+.env
+*/.env
+

@@ -11,7 +11,6 @@ from pulse_otel.consts import (
     HEADER_INCOMING_SESSION_ID,
     SESSION_ID,
 )
-import random
 from traceloop.sdk import Traceloop
 
 logger = logging.getLogger(__name__)
