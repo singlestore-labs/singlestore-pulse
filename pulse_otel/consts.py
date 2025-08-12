@@ -48,5 +48,5 @@ ENV_VARIABLES_MAPPING = {
 }
 
 # Local traces and logs output files
-LOCAL_TRACES_FILE = "traceloop_traces.json"
-LOCAL_LOGS_FILE = "traceloop_logs.txt"
+LOCAL_TRACES_FILE = "pulse_traces.json"
+LOCAL_LOGS_FILE = "pulse_logs.txt"

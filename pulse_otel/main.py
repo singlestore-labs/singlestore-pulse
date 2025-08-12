@@ -1,20 +1,17 @@
 import functools
 import os
-import uuid
 import logging
 import typing
 import time
-from typing import Callable, Any, Awaitable
 import inspect
 
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
-from opentelemetry import _logs
 
+from opentelemetry import _logs
 from opentelemetry import trace
 from opentelemetry.propagate import extract
 from opentelemetry.trace import SpanKind
-
 from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
@@ -25,7 +22,6 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
 )
-
 from opentelemetry.trace import TracerProvider
 from opentelemetry.sdk.trace import export, TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -33,11 +29,7 @@ from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
-
-from fastapi import Request, Response
-from fastapi.responses import JSONResponse
-
-from functools import wraps
+from fastapi import Request
 
 
 from pulse_otel.util import (
@@ -49,8 +41,6 @@ from pulse_otel.util import (
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
-	SESSION_ID,
-	HEADER_INCOMING_SESSION_ID,
 	PROJECT,
 	LIVE_LOGS_FILE_PATH,
 )
@@ -234,7 +224,6 @@ class Pulse:
 		"""
 		attach(set_value("override_enable_content_tracing", enabled))
 
-
 	def init_log_provider(self):
 		"""
 		Initializes the log provider and sets up the logging configuration.
@@ -257,34 +246,6 @@ class Pulse:
 		logging.root.setLevel(logging.INFO)
 		logging.root.addHandler(handler)
 		return log_exporter
-
-	def add_traceid_header(self, func: Callable) -> Callable:
-		@wraps(func)
-		async def wrapper(request: Request, *args, **kwargs) -> Response:
-			# Generate unique trace ID
-			trace_id = str(uuid.uuid4())
-
-			# Extract session ID from request headers if present
-			session_id = request.headers.get("X-SINGLESTORE-AI-SESSION-ID", "N/A")
-
-			try:
-				# Execute the original function
-				result = await func(request, *args, **kwargs)
-
-				# If result is already a Response object
-				if isinstance(result, Response):
-					result.headers["X-SINGLESTORE-TRACE-ID"] = trace_id
-					return result
-
-				return JSONResponse(
-					content=result,
-					headers={"X-SINGLESTORE-TRACE-ID": trace_id}
-				)
-
-			except Exception as e:
-				raise e
-
-		return wrapper
 
 def traced_function(func):
 	"""
