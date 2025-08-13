@@ -108,12 +108,12 @@ class Pulse:
 			return
 
 		try:
-			if enable_trace_content:
-				logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
-				os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
-			else:
-				logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
-				os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
+			# if enable_trace_content:
+			# 	logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
+			# 	os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
+			# else:
+			# 	logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
+			# 	os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
 
 			self.config = get_environ_vars()
 			if write_to_traceloop and api_key:
@@ -235,12 +235,12 @@ class Pulse:
 		"""
 		attach(set_value("override_enable_content_tracing", enabled))
 
-		if enabled:
-			logger.info("Content tracing enabled. Prompts and completions will be logged as span attributes.")
-			os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
-		else:
-			logger.info("Content tracing disabled. Prompts and completions will not be logged as span attributes.")
-			os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
+		# if enabled:
+		# 	logger.info("Content tracing enabled. Prompts and completions will be logged as span attributes.")
+		# 	os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
+		# else:
+		# 	logger.info("Content tracing disabled. Prompts and completions will not be logged as span attributes.")
+		# 	os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
 
 		# for k, v in os.environ.items():
 		# 	print(k, v)
