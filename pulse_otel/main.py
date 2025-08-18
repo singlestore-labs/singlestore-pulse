@@ -109,10 +109,10 @@ class Pulse:
 
 		try:
 			if enable_trace_content:
-				logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
+				logger.info("[PULSE][Test] Content tracing enabled. Prompts and completions will be logged as span attributes.")
 				os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
 			else:
-				logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
+				logger.info("[PULSE][Test] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
 				os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
 
 			self.config = get_environ_vars()
