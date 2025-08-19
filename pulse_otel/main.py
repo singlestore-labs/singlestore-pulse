@@ -5,6 +5,7 @@ import logging
 import typing
 import time
 from typing import Callable, Any, Awaitable
+import inspect
 
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
@@ -24,6 +25,15 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
 )
+
+from opentelemetry.trace import TracerProvider
+from opentelemetry.sdk.trace import export, TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
@@ -62,6 +72,7 @@ class Pulse:
 		otel_collector_endpoint: str = None,
 		only_live_logs: bool = False,
 		enable_trace_content=True,
+		without_traceloop: bool = False
 	):
 		"""
 		Initializes the main class with configuration for logging and tracing.
@@ -115,7 +126,7 @@ class Pulse:
 					logging_exporter=log_exporter,
 				)
 
-			elif write_to_file:
+			elif write_to_file and not without_traceloop:
 
 				log_exporter = self.init_log_provider()
 				Traceloop.init(
@@ -132,6 +143,27 @@ class Pulse:
 					_logs.set_logger_provider(log_provider)
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 					logging.root.addHandler(LoggingHandler()) # add filehandler to root logger
+			elif without_traceloop and otel_collector_endpoint is not None:
+				
+				resource = Resource(attributes={
+					SERVICE_NAME: "Pulse_OTel_Service",
+				})
+				provider = TracerProvider(resource=resource)
+				exporter = OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
+
+				if write_to_file:
+					logger.info(f"Writing traces to file: {LOCAL_TRACES_FILE}")
+					exporter = CustomFileSpanExporter(LOCAL_TRACES_FILE)
+
+				span_processor = BatchSpanProcessor(exporter)
+				provider.add_span_processor(span_processor)
+				trace.set_tracer_provider(provider)
+
+				# Optional instrumentation for logging, requests, grpc, etc.
+				LoggingInstrumentor().instrument(set_logging_format=True)
+				RequestsInstrumentor().instrument()
+
+
 			else:
 				if otel_collector_endpoint is None:
 					try:
@@ -265,6 +297,26 @@ class Pulse:
 
 		return wrapper
 
+def traced_function(func):
+	"""
+	This is for internal testing purposes only. It wraps a function with OpenTelemetry tracing without Traceloop.
+	"""
+	if inspect.iscoroutinefunction(func):
+		@functools.wraps(func)
+		async def async_wrapper(*args, **kwargs):
+			with tracer.start_as_current_span(func.__name__) as span:
+				span.set_attribute("args", str(args))
+				span.set_attribute("kwargs", str(kwargs))
+				return await func(*args, **kwargs)
+		return async_wrapper
+	else:
+		@functools.wraps(func)
+		def sync_wrapper(*args, **kwargs):
+			with tracer.start_as_current_span(func.__name__) as span:
+				span.set_attribute("args", str(args))
+				span.set_attribute("kwargs", str(kwargs))
+				return func(*args, **kwargs)
+		return sync_wrapper
 
 def pulse_tool(_func=None, *, name=None, enable_content_tracing=True):
 	"""
