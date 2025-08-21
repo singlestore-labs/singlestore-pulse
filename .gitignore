@@ -6,7 +6,5 @@ build/
 *.egg-info/
 pulse_traces.json
 pulse_logs.txt
-# Ignore any .env files
-.env
-*/.env
+**/.env
 
