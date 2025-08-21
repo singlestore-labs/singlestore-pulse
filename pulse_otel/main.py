@@ -229,21 +229,10 @@ class Pulse:
 		Sets a key called override_enable_content_tracing in the OpenTelemetry context to True right before
 		making the LLM call you want to trace with prompts. This will create a new context that will instruct instrumentations to log prompts and completions as span attributes.
 
-		With Traceloop, we set the environment variable `TRACELOOP_TRACE_CONTENT` to 'true' or 'false' based on the enabled parameter.
 		Args:
 			enabled (bool): A flag to enable or disable content tracing. Defaults to True.
 		"""
 		attach(set_value("override_enable_content_tracing", enabled))
-
-		if enabled:
-			logger.info("Content tracing enabled. Prompts and completions will be logged as span attributes.")
-			os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
-		else:
-			logger.info("Content tracing disabled. Prompts and completions will not be logged as span attributes.")
-			os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
-
-		# for k, v in os.environ.items():
-		# 	print(k, v)
 
 
 	def init_log_provider(self):
