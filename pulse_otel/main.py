@@ -157,11 +157,11 @@ class Pulse:
 
 
 			else:
-				if is_s2_owned_app() or telemetry_enabled:
-					if is_s2_owned_app():
-						logger.info("[PULSE] S2 owned app detected. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
-					elif telemetry_enabled:
+				if telemetry_enabled or is_s2_owned_app():
+					if telemetry_enabled:
 						logger.info("[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
+					else:
+						logger.info("[PULSE] S2 owned app detected. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
 
 					set_global_content_tracing(False)
 					otel_collector_endpoint = get_internal_collector_endpoint()
