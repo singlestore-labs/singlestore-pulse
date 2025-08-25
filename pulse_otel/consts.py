@@ -1,5 +1,6 @@
 # Otel collector endpoint URL for pushing traces and logs
 OTEL_COLLECTOR_ENDPOINT = "http://otel-collector-{PROJECTID_PLACEHOLDER}.observability.svc.cluster.local:4317"
+PULSE_INTERNAL_COLLECTOR_ENDPOINT = "http://otel-collector-pulse-internal-{NOVA_CELL_PLACEHOLDER}.observability.svc.cluster.local:4317"
 
 HEADER_INCOMING_SESSION_ID = "singlestore-session-id"
 

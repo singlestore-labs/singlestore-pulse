@@ -37,6 +37,9 @@ from pulse_otel.util import (
 	form_otel_collector_endpoint,
 	_is_endpoint_reachable,
 	add_session_id_to_span_attributes,
+	set_global_content_tracing,
+	is_s2_owned_app,
+	get_internal_collector_endpoint,
 	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
@@ -62,30 +65,32 @@ class Pulse:
 		otel_collector_endpoint: str = None,
 		only_live_logs: bool = False,
 		enable_trace_content=True,
-		without_traceloop: bool = False
+		without_traceloop: bool = False,
+		telemetry_enabled: bool = False,
 	):
 		"""
-		Initializes the main class with configuration for logging and tracing.
+		Initializes the Pulse class with configuration for logging and tracing.
 
 		Args:
-			write_to_file (bool): Determines whether to write logs and traces to a file.
-								  If False, logs and traces are sent to an OpenTelemetry collector.
-								  Defaults to False.This mode is for local development.
-			write_to_traceloop (bool): Determines whether to send logs and traces to Traceloop.
-			api_key (str): The API key for Traceloop. Required if `write_to_traceloop` is True.
-			otel_collector_endpoint (str): The endpoint for the OpenTelemetry collector.
+			write_to_file (bool): If True, writes traces and logs to local files. Used for local development.
+			write_to_traceloop (bool): If True, sends traces and logs to Traceloop using the provided API key.
+			api_key (str): API key for Traceloop. Required if `write_to_traceloop` is True.
+			otel_collector_endpoint (str): Endpoint for the OpenTelemetry collector. Used if sending data to OTLP.
 			only_live_logs (bool): If True, only live logs are captured and sent to a JSONL file.
-								   This is useful for debugging and development purposes.
+			enable_trace_content (bool): If True, enables content tracing for spans.
+			without_traceloop (bool): If True, disables Traceloop integration and uses OTLP or file exporters directly.
+			telemetry_enabled (bool): If True, enables telemetry and sends traces/logs to the internal Pulse OTLP collector. Also it disables content tracing.
 
 		Behavior:
-			- If `write_to_file` is False:
-				- Configures an OpenTelemetry collector endpoint based on the project configuration.
-				- Sets up a logger provider and an OTLP log exporter for sending logs.
-				- Configures a logging handler with the specified logger provider.
-				- Initializes Traceloop with the OTLP span exporter and resource attributes.
-			- If `write_to_file` is True:
-				- Initializes a custom log provider for file-based logging.
-				- Initializes Traceloop with a custom file span exporter and resource attributes.
+			- If a Pulse instance already exists, reuses its configuration.
+			- Sets up content tracing based on `enable_trace_content`.
+			- If `write_to_traceloop` and `api_key` are provided, initializes Traceloop with log exporter.
+			- If `write_to_file` and not `without_traceloop`, initializes Traceloop with custom file span exporter and log exporter.
+			- If `only_live_logs`, sets up a JSONL log exporter for live logs.
+			- If `without_traceloop` and `otel_collector_endpoint` is provided, sets up OTLP span exporter and optional file exporter.
+			- If none of the above, determines OTLP collector endpoint (internal or external), sets up OTLP log exporter and Traceloop with OTLP span exporter.
+			- Handles endpoint reachability and logs warnings if the OTLP collector is not reachable.
+			- Always sets up appropriate logger providers, log processors, and handlers for OpenTelemetry logging.
 		"""
 		start_time = time.time()
 		
@@ -98,25 +103,22 @@ class Pulse:
 			return
 
 		try:
-			if enable_trace_content:
-				logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
-				os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
-			else:
-				logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
-				os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
 
 			self.config = get_environ_vars()
 			if write_to_traceloop and api_key:
 				log_exporter = self.init_log_provider()
+				set_global_content_tracing(False)
 
 				Traceloop.init(
 					disable_batch=True,
 					resource_attributes=self.config,
 					api_key=api_key,
 					logging_exporter=log_exporter,
+					telemetry_enabled=False,
 				)
 
 			elif write_to_file and not without_traceloop:
+				set_global_content_tracing(enable_trace_content and not telemetry_enabled)
 
 				log_exporter = self.init_log_provider()
 				Traceloop.init(
@@ -155,12 +157,23 @@ class Pulse:
 
 
 			else:
+				if is_s2_owned_app() or telemetry_enabled:
+					if is_s2_owned_app():
+						logger.info("[PULSE] S2 owned app detected. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
+					elif telemetry_enabled:
+						logger.info("[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
+
+					set_global_content_tracing(False)
+					otel_collector_endpoint = get_internal_collector_endpoint()
+
 				if otel_collector_endpoint is None:
 					try:
 						projectID = self.config[str(PROJECT)]
 					except KeyError:
 						raise ValueError(f"Project ID '{PROJECT}' not found in configuration.")
 					otel_collector_endpoint = form_otel_collector_endpoint(projectID)
+				
+				logger.info(f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}")
 
 				"""
 					Use the provided OTLP collector endpoint

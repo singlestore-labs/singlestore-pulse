@@ -1,3 +1,4 @@
+import builtins
 import logging
 import os
 import socket
@@ -10,6 +11,7 @@ from pulse_otel.consts import (
     ENV_VARIABLES_MAPPING,
     HEADER_INCOMING_SESSION_ID,
     SESSION_ID,
+    PULSE_INTERNAL_COLLECTOR_ENDPOINT,
 )
 from traceloop.sdk import Traceloop
 
@@ -208,3 +210,57 @@ def add_session_id_to_span_attributes(**kwargs):
         SESSION_ID: session_id,
     }
     Traceloop.set_association_properties(properties)
+
+def set_global_content_tracing(enable_trace_content: bool = True):
+    """
+    Sets the global content tracing flag for Traceloop.
+
+    Args:
+        enable_trace_content (bool): If True, enables content tracing; otherwise, disables it.
+    """
+    
+    if enable_trace_content:
+        logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
+        os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
+    else:
+        logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
+        os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
+
+def is_s2_owned_app():
+	"""
+	Determines if the current app or agent is a first-party (S2-owned) application.
+	Checks for the presence of the 'S2_OWNED_APP' attribute in the builtins module,
+	which is injected as a notebook parameter for first-party apps like SQLBOT.
+	Returns:
+		bool: True if 'S2_OWNED_APP' is set in builtins, otherwise False.
+	"""
+
+	is_s2_owned_app = getattr(builtins, "S2_OWNED_APP", None)
+	if is_s2_owned_app is not None:
+		return is_s2_owned_app
+	else:
+		return False
+    
+def get_internal_collector_endpoint() -> str:
+    """
+    Forms the OpenTelemetry collector endpoint URL for internal Observability.
+
+    Returns:
+        str: The formatted OpenTelemetry collector endpoint URL for internal Observability.
+    """
+
+    nova_cell = None
+    http_forwarded_host = os.getenv("HTTP_FORWARDEDHOST", "")
+    if not http_forwarded_host:
+        raise ValueError("[Pulse] HTTP_FORWARDEDHOST is required for Internal Observability but not found in env variables.")
+
+    # Extract the nova cell from the http_forwarded_host
+    host_parts = http_forwarded_host.split(".")
+    if len(host_parts) > 1 and host_parts[0] == "nova-gateway":
+        nova_cell = host_parts[1]
+    else:
+        raise ValueError(f"[Pulse] Unable to extract nova cell from HTTP_FORWARDEDHOST: {http_forwarded_host}")
+    
+
+    pulse_internal_collector_endpoint_str = str(PULSE_INTERNAL_COLLECTOR_ENDPOINT)
+    return pulse_internal_collector_endpoint_str.replace("{NOVA_CELL_PLACEHOLDER}", nova_cell)
