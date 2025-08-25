@@ -103,20 +103,22 @@ class Pulse:
 			return
 
 		try:
-			set_global_content_tracing(enable_trace_content)
 
 			self.config = get_environ_vars()
 			if write_to_traceloop and api_key:
 				log_exporter = self.init_log_provider()
+				set_global_content_tracing(False)
 
 				Traceloop.init(
 					disable_batch=True,
 					resource_attributes=self.config,
 					api_key=api_key,
 					logging_exporter=log_exporter,
+					telemetry_enabled=False,
 				)
 
 			elif write_to_file and not without_traceloop:
+				set_global_content_tracing(enable_trace_content and not telemetry_enabled)
 
 				log_exporter = self.init_log_provider()
 				Traceloop.init(
@@ -155,8 +157,12 @@ class Pulse:
 
 
 			else:
-				if telemetry_enabled or is_s2_owned_app():
-					logger.info("[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
+				if is_s2_owned_app() or telemetry_enabled:
+					if is_s2_owned_app():
+						logger.info("[PULSE] S2 owned app detected. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
+					elif telemetry_enabled:
+						logger.info("[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
+
 					set_global_content_tracing(False)
 					otel_collector_endpoint = get_internal_collector_endpoint()
 
