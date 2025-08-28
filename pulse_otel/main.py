@@ -456,6 +456,19 @@ class FileLogExporter(LogExporter):
         # No specific shutdown logic needed for file-based exporting
         pass
 
+class JSONFileLogger:
+	"""
+	A simple logger that writes log messages to a JSON file.
+	"""
+	def __init__(self):
+		jsonl_file_exporter = get_jsonl_file_exporter()
+		if jsonl_file_exporter is not None:
+			self.exporter = jsonl_file_exporter
+			self.logger_provider = LoggerProvider()
+			self.logger_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
+			self.log_handler = LoggingHandler(level=logging.INFO,logger_provider=self.logger_provider)
+			logging.root.addHandler(self.log_handler)
+
 def get_jsonl_log_file_path():
 	"""
 	Gets the filename for live logs from env vars
