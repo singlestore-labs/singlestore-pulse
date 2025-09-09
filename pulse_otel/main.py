@@ -456,6 +456,19 @@ class FileLogExporter(LogExporter):
         # No specific shutdown logic needed for file-based exporting
         pass
 
+def setup_json_file_logger():
+	"""
+	Sets up logging to a JSONL file using OpenTelemetry if the exporter is available.
+	"""
+	jsonl_file_exporter = get_jsonl_file_exporter()
+	if jsonl_file_exporter is not None:
+		logger_provider = LoggerProvider()
+		logger_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
+		log_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+		logging.root.addHandler(log_handler)
+		return logger_provider, log_handler
+	return None, None
+
 def get_jsonl_log_file_path():
 	"""
 	Gets the filename for live logs from env vars
