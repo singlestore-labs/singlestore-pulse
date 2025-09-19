@@ -244,12 +244,12 @@ def is_s2_owned_app():
 def is_pulse_advanced_debugging_set():
     """
     Determines if the current app or agent has advanced debugging enabled.
-    Checks for the presence of the 'PULSE_ADVANCED_DEBUGGING' attribute in the builtins module,
+    Checks for the presence of the 'FORCE_CONTENT_TRACING' attribute in the builtins module,
     which can be injected as a notebook parameter for first-party apps which needs advanced debugging in dev mode.
     Returns:
-        bool: True if 'PULSE_ADVANCED_DEBUGGING' is set in builtins, otherwise False.
+        bool: True if 'FORCE_CONTENT_TRACING' is set in builtins, otherwise False.
     """
-    is_pulse_advanced_debugging = getattr(builtins, "PULSE_ADVANCED_DEBUGGING", None)
+    is_pulse_advanced_debugging = getattr(builtins, "FORCE_CONTENT_TRACING", None)
     if is_pulse_advanced_debugging is not None:
         return is_pulse_advanced_debugging
     else:
