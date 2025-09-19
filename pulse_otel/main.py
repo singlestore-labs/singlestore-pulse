@@ -39,8 +39,8 @@ from pulse_otel.util import (
 	add_session_id_to_span_attributes,
 	set_global_content_tracing,
 	is_s2_owned_app,
-	get_internal_collector_endpoint,
-	)
+	get_internal_collector_endpoint, is_force_content_tracing_enabled,
+)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
@@ -157,7 +157,12 @@ class Pulse:
 
 
 			else:
-				if telemetry_enabled or is_s2_owned_app():
+				force_content_tracing = is_force_content_tracing_enabled()
+				if force_content_tracing:
+					logger.info("[PULSE] Force content tracing enabled via environment variable.")
+				# If force_content_tracing is not set, check telemetry_enabled and is_s2_owned_app() to see if we
+				# should use internal collector and disable content tracing
+				elif telemetry_enabled or is_s2_owned_app():
 					if telemetry_enabled:
 						logger.info("[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
 					else:
