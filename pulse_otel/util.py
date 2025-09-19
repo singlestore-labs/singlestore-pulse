@@ -241,19 +241,15 @@ def is_s2_owned_app():
 	else:
 		return False
 
-def is_pulse_advanced_debugging_set():
+def is_force_content_tracing_enabled():
     """
-    Determines if the current app or agent has advanced debugging enabled.
+    Determines if the current app or agent has force content tracing enabled.
     Checks for the presence of the 'FORCE_CONTENT_TRACING' attribute in the builtins module,
     which can be injected as a notebook parameter for first-party apps which needs advanced debugging in dev mode.
     Returns:
         bool: True if 'FORCE_CONTENT_TRACING' is set in builtins, otherwise False.
     """
-    is_pulse_advanced_debugging = getattr(builtins, "FORCE_CONTENT_TRACING", None)
-    if is_pulse_advanced_debugging is not None:
-        return is_pulse_advanced_debugging
-    else:
-        return False
+    return getattr(builtins, "FORCE_CONTENT_TRACING", False)
 
 def get_internal_collector_endpoint() -> str:
     """
