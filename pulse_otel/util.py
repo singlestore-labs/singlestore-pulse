@@ -240,7 +240,16 @@ def is_s2_owned_app():
 		return is_s2_owned_app
 	else:
 		return False
-    
+
+def is_force_content_tracing_enabled():
+    """
+    Determines whether full-content tracing should be userd even for first-party apps like SQLBOT.
+    Returns:
+        bool: True if 'FORCE_CONTENT_TRACING' is set in builtins, otherwise False.
+    """
+
+    return getattr(builtins, "FORCE_CONTENT_TRACING", False)
+
 def get_internal_collector_endpoint() -> str:
     """
     Forms the OpenTelemetry collector endpoint URL for internal Observability.
