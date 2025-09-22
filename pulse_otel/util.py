@@ -230,7 +230,7 @@ def is_s2_owned_app():
 	"""
 	Determines if the current app or agent is a first-party (S2-owned) application.
 	Checks for the presence of the 'S2_OWNED_APP' attribute in the builtins module,
-	which is injected as a notebook parameter for first-party apps like SQLBOT.
+	which is injected as a notebook parameter for first-party apps.
 	Returns:
 		bool: True if 'S2_OWNED_APP' is set in builtins, otherwise False.
 	"""
@@ -240,7 +240,17 @@ def is_s2_owned_app():
 		return is_s2_owned_app
 	else:
 		return False
-    
+
+def is_force_content_tracing_enabled():
+    """
+    Determines if the current app or agent has force content tracing enabled.
+    Checks for the presence of the 'FORCE_CONTENT_TRACING' attribute in the builtins module,
+    which can be injected as a notebook parameter for first-party apps which needs advanced debugging in dev mode.
+    Returns:
+        bool: True if 'FORCE_CONTENT_TRACING' is set in builtins, otherwise False.
+    """
+    return getattr(builtins, "FORCE_CONTENT_TRACING", False)
+
 def get_internal_collector_endpoint() -> str:
     """
     Forms the OpenTelemetry collector endpoint URL for internal Observability.
@@ -256,7 +266,7 @@ def get_internal_collector_endpoint() -> str:
 
     # Extract the nova cell from the http_forwarded_host
     host_parts = http_forwarded_host.split(".")
-    if len(host_parts) > 1 and host_parts[0] == "nova-gateway":
+    if len(host_parts) > 1 and (host_parts[0] == "nova-gateway" or host_parts[0] == "nova-gateway-stg"):
         nova_cell = host_parts[1]
     else:
         raise ValueError(f"[Pulse] Unable to extract nova cell from HTTP_FORWARDEDHOST: {http_forwarded_host}")
