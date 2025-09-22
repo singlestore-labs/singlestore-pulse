@@ -7,4 +7,5 @@ build/
 pulse_traces.json
 pulse_logs.txt
 **/.env
+examples/otel-collector/tmp/*
 
