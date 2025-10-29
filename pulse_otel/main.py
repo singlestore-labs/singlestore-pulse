@@ -68,6 +68,7 @@ class Pulse:
 		enable_trace_content=True,
 		without_traceloop: bool = False,
 		telemetry_enabled: bool = False,
+        disable_batch: bool = True,
 	):
 		"""
 		Initializes the Pulse class with configuration for logging and tracing.
@@ -81,6 +82,7 @@ class Pulse:
 			enable_trace_content (bool): If True, enables content tracing for spans.
 			without_traceloop (bool): If True, disables Traceloop integration and uses OTLP or file exporters directly.
 			telemetry_enabled (bool): If True, enables telemetry and sends traces/logs to the internal Pulse OTLP collector. Also it disables content tracing.
+    		disable_batch (bool): If True, disables batch processing for exporters.
 
 		Behavior:
 			- If a Pulse instance already exists, reuses its configuration.
@@ -111,7 +113,7 @@ class Pulse:
 				set_global_content_tracing(False)
 
 				Traceloop.init(
-					disable_batch=True,
+					disable_batch=disable_batch,
 					resource_attributes=self.config,
 					api_key=api_key,
 					logging_exporter=log_exporter,
@@ -123,7 +125,7 @@ class Pulse:
 
 				log_exporter = self.init_log_provider()
 				Traceloop.init(
-					disable_batch=True,
+					disable_batch=disable_batch,
 					exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
 					resource_attributes=self.config,
 					logging_exporter=log_exporter,
@@ -215,7 +217,7 @@ class Pulse:
 				logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 				Traceloop.init(
-					disable_batch=True,
+					disable_batch=disable_batch,
 					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,
 					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
