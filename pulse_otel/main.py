@@ -160,7 +160,7 @@ class Pulse:
 
 
 			else:
-				if is_force_content_tracing_enabled() or True:
+				if is_force_content_tracing_enabled():
 					logger.info("[PULSE] Force content tracing is enabled. Traces will be sent to project specific OpenTelemetry collector and Content Tracing will be enabled.")
 					set_span_attribute_size_limit(span_attribute_size_limit)
 				elif telemetry_enabled or is_s2_owned_app():
