@@ -41,6 +41,7 @@ from pulse_otel.util import (
 	is_s2_owned_app,
 	get_internal_collector_endpoint,
 	is_force_content_tracing_enabled,
+	set_span_attribute_size_limit
 	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
@@ -68,6 +69,7 @@ class Pulse:
 		enable_trace_content=True,
 		without_traceloop: bool = False,
 		telemetry_enabled: bool = False,
+		span_attribute_size_limit: int = 4 * 1024,
 	):
 		"""
 		Initializes the Pulse class with configuration for logging and tracing.
@@ -158,9 +160,9 @@ class Pulse:
 
 
 			else:
-				if is_force_content_tracing_enabled():
+				if is_force_content_tracing_enabled() or True:
 					logger.info("[PULSE] Force content tracing is enabled. Traces will be sent to project specific OpenTelemetry collector and Content Tracing will be enabled.")
-
+					set_span_attribute_size_limit(span_attribute_size_limit)
 				elif telemetry_enabled or is_s2_owned_app():
 					if telemetry_enabled:
 						logger.info("[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled.")
@@ -240,6 +242,11 @@ class Pulse:
 			enabled (bool): A flag to enable or disable content tracing. Defaults to True.
 		"""
 		attach(set_value("override_enable_content_tracing", enabled))
+
+	@staticmethod
+	def reset_span_attribute_size_limit():
+		if 'OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT' in os.environ:
+			del os.environ['OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT']
 
 	def init_log_provider(self):
 		"""

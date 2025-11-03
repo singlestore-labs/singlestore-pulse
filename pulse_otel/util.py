@@ -275,18 +275,13 @@ def get_internal_collector_endpoint() -> str:
     pulse_internal_collector_endpoint_str = str(PULSE_INTERNAL_COLLECTOR_ENDPOINT)
     return pulse_internal_collector_endpoint_str.replace("{NOVA_CELL_PLACEHOLDER}", nova_cell)
 
-def set_span_attribute_size_limit(size_limit: int = 1024):
+def set_span_attribute_size_limit(size_limit: int):
     """
-    Sets the maximum size limit for span attributes in Traceloop.
-
+    Sets the maximum size limit in characters for a string-valued span attributes in opentelemetry.
+    If the size of the attribute value exceeds this limit, it gets truncated.
+    
     Args:
-        size_limit (int): The maximum size limit for span attributes in bytes.
+        size_limit (int): The maximum size limit for span attributes in characters.
     """
-    os.environ['TRACELOOP_SPAN_ATTRIBUTE_SIZE_LIMIT'] = str(size_limit)
+    os.environ['OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT'] = str(size_limit)
 
-def reset_span_attribute_size_limit():
-    """
-    Resets the maximum size limit for span attributes in Traceloop to the default value.
-    """
-    if 'TRACELOOP_SPAN_ATTRIBUTE_SIZE_LIMIT' in os.environ:
-        del os.environ['TRACELOOP_SPAN_ATTRIBUTE_SIZE_LIMIT']
