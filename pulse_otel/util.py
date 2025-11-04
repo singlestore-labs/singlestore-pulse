@@ -274,3 +274,14 @@ def get_internal_collector_endpoint() -> str:
 
     pulse_internal_collector_endpoint_str = str(PULSE_INTERNAL_COLLECTOR_ENDPOINT)
     return pulse_internal_collector_endpoint_str.replace("{NOVA_CELL_PLACEHOLDER}", nova_cell)
+
+def set_span_attribute_size_limit(size_limit: int):
+    """
+    Sets the maximum size limit in characters for a string-valued span attributes in opentelemetry.
+    If the size of the attribute value exceeds this limit, it gets truncated.
+    
+    Args:
+        size_limit (int): The maximum size limit for span attributes in characters.
+    """
+    os.environ['OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT'] = str(size_limit)
+
