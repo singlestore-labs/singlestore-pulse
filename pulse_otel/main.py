@@ -204,6 +204,7 @@ class Pulse:
 					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
 				"""
 				handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
+				logging.root.addHandler(handler)
 
 				"""
 					In Python logging, both the logger and the handler have their own log levels, and both levels must be satisfied for a log record to be processed and exported.
@@ -214,7 +215,7 @@ class Pulse:
 					2. Root Logger Level (logging.basicConfig(level=logging.INFO, ...)):
 					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
 				"""
-				logging.basicConfig(level=logging.INFO, handlers=[handler])
+				logging.basicConfig(level=logging.INFO)
 
 				Traceloop.init(
 					disable_batch=True,
