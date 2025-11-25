@@ -52,7 +52,7 @@ import logging
 
 _pulse_instance = None
 
-logging.basicConfig(level=logging.INFO)
+# Don't call basicConfig here - let Pulse initialization handle it
 logger = logging.getLogger(__name__)
 
 tracer = trace.get_tracer(__name__)
@@ -179,42 +179,49 @@ class Pulse:
 				
 				logger.info(f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}")
 
-				"""
-					Use the provided OTLP collector endpoint
-					First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
-				"""
-				log_provider = LoggerProvider()
-				_logs.set_logger_provider(log_provider)
+			"""
+				Use the provided OTLP collector endpoint
+				First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
+			"""
+			# Create resource with the same attributes as traces for consistency
+			resource = Resource(attributes=self.config)
+			log_provider = LoggerProvider(resource=resource)
+			_logs.set_logger_provider(log_provider)
 
-				# create json log exporter for live logs
-				jsonl_file_exporter = get_jsonl_file_exporter()
-				if jsonl_file_exporter is not None:
-					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
+			# create json log exporter for live logs
+			jsonl_file_exporter = get_jsonl_file_exporter()
+			if jsonl_file_exporter is not None:
+				log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
-				if not _is_endpoint_reachable(otel_collector_endpoint):
-					logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
-					return
+			if not _is_endpoint_reachable(otel_collector_endpoint):
+				logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+				return
 
-				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
-				log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+			log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
+			log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-				"""
-					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
-				"""
-				handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
+			"""
+				A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
+			"""
+			handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
 
-				"""
-					In Python logging, both the logger and the handler have their own log levels, and both levels must be satisfied for a log record to be processed and exported.
+			"""
+				In Python logging, both the logger and the handler have their own log levels, and both levels must be satisfied for a log record to be processed and exported.
 
-					1. Handler Level (LoggingHandler(level=logging.DEBUG, ...)):
-					This means the handler is willing to process log records at DEBUG level and above (DEBUG, INFO, WARNING, etc.).
+				1. Handler Level (LoggingHandler(level=logging.DEBUG, ...)):
+				This means the handler is willing to process log records at DEBUG level and above (DEBUG, INFO, WARNING, etc.).
 
-					2. Root Logger Level (logging.basicConfig(level=logging.INFO, ...)):
-					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
-				"""
-				logging.basicConfig(level=logging.INFO, handlers=[handler])
+				2. Root Logger Level (logging.basicConfig(level=logging.INFO, ...)):
+				This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
+			"""
+			# Configure root logger properly
+			root_logger = logging.getLogger()
+			root_logger.setLevel(logging.INFO)
+			# Clear existing handlers to avoid duplicates
+			root_logger.handlers.clear()
+			root_logger.addHandler(handler)
 
-				Traceloop.init(
+			Traceloop.init(
 					disable_batch=True,
 					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,
