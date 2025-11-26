@@ -193,9 +193,9 @@ class Pulse:
 				if jsonl_file_exporter is not None:
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
-				if not _is_endpoint_reachable(otel_collector_endpoint):
-					logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
-					return
+				# if not _is_endpoint_reachable(otel_collector_endpoint):
+				# 	logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+				# 	return
 
 				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
 				log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
