@@ -217,6 +217,7 @@ class Pulse:
 					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
 				"""
 				logging.basicConfig(level=logging.INFO)
+				print("[Pulse] Only instrumenting required libraries for opentelemetry tracing.")
 				Traceloop.init(
 					disable_batch=True,
 					api_endpoint=otel_collector_endpoint,
