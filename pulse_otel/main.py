@@ -42,7 +42,9 @@ from pulse_otel.util import (
 	is_s2_owned_app,
 	get_internal_collector_endpoint,
 	is_force_content_tracing_enabled,
-	set_span_attribute_size_limit
+	set_span_attribute_size_limit,
+	_perform_otel_collector_reachability_check,
+	_otel_collector_reachability_cache
 	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
@@ -58,6 +60,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 tracer = trace.get_tracer(__name__)
+
+# Run the OTel collector reachability check at import time for analyst kernels
+_perform_otel_collector_reachability_check()
 
 class Pulse:
 	def __init__(
@@ -194,8 +199,25 @@ class Pulse:
 				if jsonl_file_exporter is not None:
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
-				if not _is_endpoint_reachable(otel_collector_endpoint):
+				# Check if endpoint is reachable
+				# For analyst kernels, use cached result from import time check
+				kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
+				is_reachable = None
+				
+				if kernel_type.lower() == "analyst" and otel_collector_endpoint in _otel_collector_reachability_cache:
+					# Use cached result from import-time check
+					is_reachable = _otel_collector_reachability_cache[otel_collector_endpoint]
+					logger.info(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
+					print(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
+				else:
+					# Perform reachability check at initialization time (non-analyst or cache miss)
+					is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
+					logger.info(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
+					print(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
+				
+				if not is_reachable:
 					logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+					print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
 					return
 
 				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
