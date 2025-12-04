@@ -7,6 +7,7 @@ import inspect
 
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, tool
+from traceloop.sdk.instruments import Instruments
 
 from opentelemetry import _logs
 from opentelemetry import trace
@@ -106,7 +107,7 @@ class Pulse:
 			return
 
 		try:
-
+			
 			self.config = get_environ_vars()
 			if write_to_traceloop and api_key:
 				log_exporter = self.init_log_provider()
@@ -216,13 +217,20 @@ class Pulse:
 					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
 				"""
 				logging.basicConfig(level=logging.INFO)
-
 				Traceloop.init(
 					disable_batch=True,
 					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,
+					should_enrich_metrics=False,
 					exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
 					telemetry_enabled=False,
+					instruments={	
+							Instruments.ANTHROPIC,
+							Instruments.OPENAI,
+							Instruments.OLLAMA,
+							Instruments.BEDROCK,
+							Instruments.LANGCHAIN
+				  },
 				)
 		except Exception as e:
 			logger.error(f"Error initializing Pulse: {e}")

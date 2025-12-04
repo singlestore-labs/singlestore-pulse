@@ -18,9 +18,11 @@ exporters:
 
 
   file/logs:
-    path: /tmp/otel_collector_logs.json  # This path should work with the new volume mount
+    path: /tmp/otel_collector_logs.json
+    format: json  # Export logs in JSON format for readability
   file/traces:
-      path: /tmp/otel_collector_traces.json  # This path should work with the new volume mount
+    path: /tmp/otel_collector_traces.json
+    format: json  # Export traces in JSON format for readability
 
 service:
   pipelines:
