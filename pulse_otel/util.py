@@ -17,6 +17,9 @@ from traceloop.sdk import Traceloop
 
 logger = logging.getLogger(__name__)
 
+# Cache for import-time OTel collector reachability check (analyst kernels only)
+_otel_collector_reachability_cache = {}
+
 def get_environ_vars():
     """
     Reads specific environment variables and returns their values. If a variable is not set, returns its default value.
@@ -284,3 +287,40 @@ def set_span_attribute_size_limit(size_limit: int):
         size_limit (int): The maximum size limit for span attributes in characters.
     """
     os.environ['OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT'] = str(size_limit)
+
+# Perform import-time OTel collector reachability check for analyst kernels
+def _perform_otel_collector_reachability_check():
+	"""
+	Performs the OTel collector reachability check at import time
+	if the kernel type is 'analyst'. Stores the result in a cache.
+	"""
+	try:
+		kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
+		if kernel_type.lower() != "analyst":
+			logger.debug("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
+			print("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
+			return
+
+
+		cell_short_name = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
+		if not cell_short_name:
+			logger.error("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
+			print("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
+			return
+
+
+		otel_collector_endpoint = f"http://otel-collector-pulse-internal-{cell_short_name}.observability.svc.cluster.local:4317"
+		logger.info(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
+		print(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
+
+		is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
+		_otel_collector_reachability_cache[otel_collector_endpoint] = is_reachable
+
+		if not is_reachable:
+			logger.warning(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
+			print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
+		else:
+			logger.info(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
+			print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
+	except Exception as e:
+		logger.error(f"[PULSE] Error during import-time reachability check: {e}")
