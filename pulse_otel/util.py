@@ -2,6 +2,7 @@ import builtins
 import logging
 import os
 import socket
+import time
 from urllib.parse import urlparse
 from typing import Optional
 
@@ -140,12 +141,14 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
     return None
 
 
-def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
+def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3, retries: int = 3, backoff: int = 2) -> bool:
     """
     Checks if a given endpoint URL is reachable within a specified timeout.
     Args:
         endpoint_url (str): The URL of the endpoint to check. Must include the hostname and optionally the port.
         timeout (int, optional): The timeout duration in seconds for the connection attempt. Defaults to 3 seconds.
+        retries (int, optional): The number of retries to attempt. Defaults to 3.
+        backoff (int, optional): The backoff duration in seconds between retries. Defaults to 2 seconds.
     Returns:
         bool: True if the endpoint is reachable, False otherwise.
     Warnings:
@@ -159,28 +162,34 @@ def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3) -> bool:
     if not endpoint_url:
         print("Warning: OTel endpoint URL is empty. Assuming unreachable.")
         return False
-    try:
 
-        parsed_url = urlparse(endpoint_url)
-        host = parsed_url.hostname
-        port = parsed_url.port
+    for attempt in range(retries + 1):
+        try:
+            parsed_url = urlparse(endpoint_url)
+            host = parsed_url.hostname
+            port = parsed_url.port
 
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except (socket.error, ConnectionRefusedError, socket.timeout) as e:
-        # Define host/port for error message, using defaults if parsing failed before assignment.
-        error_host_str = host if 'host' in locals() and host is not None else "unknown (parsing error)"
-        # Port is expected to be 4317 if format is correct.
-        error_port_str = str(port) if 'port' in locals() and port is not None else "unknown (parsing error or not 4317)"
-        
-        print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}")
-        return False
-    except ValueError as e: # Handle potential errors from urlparse if URL is malformed
-        print(f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable.")
-        return False
-    except Exception as e: # Catch any other unexpected errors during the check
-        print(f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}")
-        return False
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except (socket.error, ConnectionRefusedError, socket.timeout) as e:
+            # Define host/port for error message, using defaults if parsing failed before assignment.
+            error_host_str = host if 'host' in locals() and host is not None else "unknown (parsing error)"
+            # Port is expected to be 4317 if format is correct.
+            error_port_str = str(port) if 'port' in locals() and port is not None else "unknown (parsing error or not 4317)"
+            
+            if attempt < retries:
+                print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds...")
+                time.sleep(backoff)
+            else:
+                print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable after {retries} retries: {e}")
+                return False
+        except ValueError as e: # Handle potential errors from urlparse if URL is malformed
+            print(f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable.")
+            return False
+        except Exception as e: # Catch any other unexpected errors during the check
+            print(f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}")
+            return False
+    return False
 
 def add_session_id_to_span_attributes(**kwargs):
     """
