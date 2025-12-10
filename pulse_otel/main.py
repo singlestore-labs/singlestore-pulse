@@ -76,6 +76,7 @@ class Pulse:
 		without_traceloop: bool = False,
 		telemetry_enabled: bool = False,
 		span_attribute_size_limit: int = 4 * 1024,
+		skip_reachability_check: bool = False,
 	):
 		"""
 		Initializes the Pulse class with configuration for logging and tracing.
@@ -204,21 +205,22 @@ class Pulse:
 				kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
 				is_reachable = None
 				
-				if kernel_type.lower() == "analyst" and otel_collector_endpoint in _otel_collector_reachability_cache:
-					# Use cached result from import-time check
-					is_reachable = _otel_collector_reachability_cache[otel_collector_endpoint]
-					logger.info(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
-					print(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
-				else:
-					# Perform reachability check at initialization time (non-analyst or cache miss)
-					is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
-					logger.info(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
-					print(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
+				if not skip_reachability_check:
+					if kernel_type.lower() == "analyst" and otel_collector_endpoint in _otel_collector_reachability_cache:
+						# Use cached result from import-time check
+						is_reachable = _otel_collector_reachability_cache[otel_collector_endpoint]
+						logger.info(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
+						print(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
+					else:
+						# Perform reachability check at initialization time (non-analyst or cache miss)
+						is_reachable = _is_endpoint_reachable(otel_collector_endpoint, retry_enabled=True)
+						logger.info(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
+						print(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
 				
-				if not is_reachable:
-					logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
-					print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
-					return
+					if not is_reachable:
+						logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+						print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
+						return
 
 				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
 				log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
@@ -254,14 +256,13 @@ class Pulse:
 							Instruments.LANGCHAIN
 				  },
 				)
+						# Set the global instance
+			_pulse_instance = self
+			end_time = time.time()
+			logger.info(f"Pulse initialized successfully in {end_time - start_time:.2f} seconds.")
 		except Exception as e:
 			logger.error(f"Error initializing Pulse: {e}")
-
-		# Set the global instance
-		_pulse_instance = self
-		end_time = time.time()
-		logger.info(f"Pulse initialized successfully in {end_time - start_time:.2f} seconds.")
-
+			
 	@staticmethod
 	def enable_content_tracing(enabled: bool = True):
 		"""
