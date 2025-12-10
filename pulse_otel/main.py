@@ -213,7 +213,7 @@ class Pulse:
 						print(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
 					else:
 						# Perform reachability check at initialization time (non-analyst or cache miss)
-						is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
+						is_reachable = _is_endpoint_reachable(otel_collector_endpoint, retry_enabled=True)
 						logger.info(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
 						print(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
 				

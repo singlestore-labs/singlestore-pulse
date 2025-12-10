@@ -141,14 +141,15 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
     return None
 
 
-def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3, retries: int = 3, backoff: int = 2) -> bool:
+def _is_endpoint_reachable(endpoint_url: str, retry_enabled: bool = False, timeout: int = 3, retries: int = 3, backoff: int = 1) -> bool:
     """
     Checks if a given endpoint URL is reachable within a specified timeout.
     Args:
         endpoint_url (str): The URL of the endpoint to check. Must include the hostname and optionally the port.
+        retry_enabled (bool, optional): Whether to enable retries on failure. Defaults to False.
         timeout (int, optional): The timeout duration in seconds for the connection attempt. Defaults to 3 seconds.
         retries (int, optional): The number of retries to attempt. Defaults to 3.
-        backoff (int, optional): The backoff duration in seconds between retries. Defaults to 2 seconds.
+        backoff (int, optional): The backoff duration in seconds between retries. Defaults to 1 seconds.
     Returns:
         bool: True if the endpoint is reachable, False otherwise.
     Warnings:
@@ -163,7 +164,10 @@ def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3, retries: int = 3
         print("Warning: OTel endpoint URL is empty. Assuming unreachable.")
         return False
 
-    for attempt in range(retries + 1):
+    if not retry_enabled:
+        retries = 1
+
+    for attempt in range(retries):
         try:
             parsed_url = urlparse(endpoint_url)
             host = parsed_url.hostname
@@ -177,7 +181,7 @@ def _is_endpoint_reachable(endpoint_url: str, timeout: int = 3, retries: int = 3
             # Port is expected to be 4317 if format is correct.
             error_port_str = str(port) if 'port' in locals() and port is not None else "unknown (parsing error or not 4317)"
             
-            if attempt < retries:
+            if attempt < retries - 1:
                 print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds...")
                 time.sleep(backoff)
             else:
