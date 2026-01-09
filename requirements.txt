@@ -4,4 +4,3 @@ opentelemetry-exporter-otlp==1.33.1
 opentelemetry-exporter-otlp-proto-grpc==1.33.1
 traceloop-sdk==0.40.7
 fastapi==0.115.12
-langchain-community==0.3.25
