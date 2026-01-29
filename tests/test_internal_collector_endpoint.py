@@ -13,8 +13,8 @@ def unset_env(key):
         del os.environ[key]
 
 def test_get_internal_collector_endpoint_positive(monkeypatch):
-    # Set up a valid HTTP_FORWARDEDHOST
-    monkeypatch.setenv("HTTP_FORWARDEDHOST", "nova-gateway.nova-cell.example.com")
+    # Set up a valid SINGLESTOREDB_CELL_SHORT_NAME
+    monkeypatch.setenv("SINGLESTOREDB_CELL_SHORT_NAME", "nova-cell")
     # Patch the PULSE_INTERNAL_COLLECTOR_ENDPOINT constant
     
     result = get_internal_collector_endpoint()
@@ -22,8 +22,8 @@ def test_get_internal_collector_endpoint_positive(monkeypatch):
     assert result == "http://otel-collector-pulse-internal-nova-cell.observability.svc.cluster.local:4317"
 
 def test_get_internal_collector_endpoint_positive_stg(monkeypatch):
-    # Set up a valid HTTP_FORWARDEDHOST
-    monkeypatch.setenv("HTTP_FORWARDEDHOST", "nova-gateway-stg.nova-cell-stg.example.com")
+    # Set up a valid SINGLESTOREDB_CELL_SHORT_NAME
+    monkeypatch.setenv("SINGLESTOREDB_CELL_SHORT_NAME", "nova-cell-stg")
     # Patch the PULSE_INTERNAL_COLLECTOR_ENDPOINT constant
     
     result = get_internal_collector_endpoint()
@@ -31,22 +31,8 @@ def test_get_internal_collector_endpoint_positive_stg(monkeypatch):
     assert result == "http://otel-collector-pulse-internal-nova-cell-stg.observability.svc.cluster.local:4317"
 
 def test_get_internal_collector_endpoint_missing_env(monkeypatch):
-    # Ensure HTTP_FORWARDEDHOST is not set
-    monkeypatch.delenv("HTTP_FORWARDEDHOST", raising=False)
+    # Ensure SINGLESTOREDB_CELL_SHORT_NAME is not set
+    monkeypatch.delenv("SINGLESTOREDB_CELL_SHORT_NAME", raising=False)
     with pytest.raises(ValueError) as excinfo:
         get_internal_collector_endpoint()
-    assert "HTTP_FORWARDEDHOST is required" in str(excinfo.value)
-
-def test_get_internal_collector_endpoint_invalid_format(monkeypatch):
-    # Set an invalid HTTP_FORWARDEDHOST
-    monkeypatch.setenv("HTTP_FORWARDEDHOST", "invalidhost.example.com")
-    with pytest.raises(ValueError) as excinfo:
-        get_internal_collector_endpoint()
-    assert "Unable to extract nova cell" in str(excinfo.value)
-
-def test_get_internal_collector_endpoint_wrong_prefix(monkeypatch):
-    # Set a host that does not start with nova-gateway
-    monkeypatch.setenv("HTTP_FORWARDEDHOST", "otherprefix.nova-cell.example.com")
-    with pytest.raises(ValueError) as excinfo:
-        get_internal_collector_endpoint()
-    assert "Unable to extract nova cell" in str(excinfo.value)
+    assert "SINGLESTOREDB_CELL_SHORT_NAME is required" in str(excinfo.value)

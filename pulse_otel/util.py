@@ -275,21 +275,12 @@ def get_internal_collector_endpoint() -> str:
         str: The formatted OpenTelemetry collector endpoint URL for internal Observability.
     """
 
-    nova_cell = None
-    http_forwarded_host = os.getenv("HTTP_FORWARDEDHOST", "")
-    if not http_forwarded_host:
-        raise ValueError("[Pulse] HTTP_FORWARDEDHOST is required for Internal Observability but not found in env variables.")
-
-    # Extract the nova cell from the http_forwarded_host
-    host_parts = http_forwarded_host.split(".")
-    if len(host_parts) > 1 and (host_parts[0] == "nova-gateway" or host_parts[0] == "nova-gateway-stg"):
-        nova_cell = host_parts[1]
-    else:
-        raise ValueError(f"[Pulse] Unable to extract nova cell from HTTP_FORWARDEDHOST: {http_forwarded_host}")
-    
+    nova_cell_shortname = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
+    if not nova_cell_shortname:
+        raise ValueError("[Pulse] SINGLESTOREDB_CELL_SHORT_NAME is required for Internal Observability but not found in env variables.")
 
     pulse_internal_collector_endpoint_str = str(PULSE_INTERNAL_COLLECTOR_ENDPOINT)
-    return pulse_internal_collector_endpoint_str.replace("{NOVA_CELL_PLACEHOLDER}", nova_cell)
+    return pulse_internal_collector_endpoint_str.replace("{NOVA_CELL_PLACEHOLDER}", nova_cell_shortname)
 
 def set_span_attribute_size_limit(size_limit: int):
     """
