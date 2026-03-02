@@ -51,7 +51,7 @@ def get_environ_vars():
     return formatted_env_variables
 
 def format_env_variables(env_variables):
-    
+
     new_data = {}
     for key, value in env_variables.items():
         # Find if any of the match keys exist in the current key
@@ -80,7 +80,7 @@ def form_otel_collector_endpoint(
     Returns:
         str: The formatted OpenTelemetry collector endpoint URL.
     """
-    
+
     if project_id is None or project_id == '':
         raise ValueError("[Pulse] SINGLESTOREDB_PROJECT is required but not found int env variables.")
 
@@ -127,10 +127,10 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
     try:
         request_body = kwargs.get("body")
         if request_body:
-           
+
             if isinstance(request_body, dict):
                 return request_body.get("session_id")
-            
+
             # For attribute-style (e.g., Pydantic model)
             elif hasattr(request_body, "session_id"):
                 logger.debug(f"[pulse_agent] DEBUG - Found session_id in request body attributes: {request_body.session_id}")
@@ -180,7 +180,7 @@ def _is_endpoint_reachable(endpoint_url: str, retry_enabled: bool = False, timeo
             error_host_str = host if 'host' in locals() and host is not None else "unknown (parsing error)"
             # Port is expected to be 4317 if format is correct.
             error_port_str = str(port) if 'port' in locals() and port is not None else "unknown (parsing error or not 4317)"
-            
+
             if attempt < retries - 1:
                 print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds...")
                 time.sleep(backoff)
@@ -234,7 +234,7 @@ def set_global_content_tracing(enable_trace_content: bool = True):
     Args:
         enable_trace_content (bool): If True, enables content tracing; otherwise, disables it.
     """
-    
+
     if enable_trace_content:
         logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
         os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
@@ -286,7 +286,7 @@ def set_span_attribute_size_limit(size_limit: int):
     """
     Sets the maximum size limit in characters for a string-valued span attributes in opentelemetry.
     If the size of the attribute value exceeds this limit, it gets truncated.
-    
+
     Args:
         size_limit (int): The maximum size limit for span attributes in characters.
     """
@@ -301,30 +301,30 @@ def _perform_otel_collector_reachability_check():
 	try:
 		kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
 		if kernel_type.lower() != "analyst":
-			logger.debug("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
-			print("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
+			logger.info("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
+			# print("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
 			return
 
 
 		cell_short_name = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
 		if not cell_short_name:
 			logger.error("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
-			print("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
+			# print("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
 			return
 
 
 		otel_collector_endpoint = f"http://otel-collector-pulse-internal-{cell_short_name}.observability.svc.cluster.local:4317"
 		logger.info(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
-		print(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
+		# print(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
 
 		is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
 		_otel_collector_reachability_cache[otel_collector_endpoint] = is_reachable
 
 		if not is_reachable:
 			logger.warning(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
-			print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
+			# print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
 		else:
 			logger.info(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
-			print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
+			# print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
 	except Exception as e:
 		logger.error(f"[PULSE] Error during import-time reachability check: {e}")
