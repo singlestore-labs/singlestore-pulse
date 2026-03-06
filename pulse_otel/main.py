@@ -210,16 +210,13 @@ class Pulse:
 						# Use cached result from import-time check
 						is_reachable = _otel_collector_reachability_cache[otel_collector_endpoint]
 						logger.info(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
-						print(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
 					else:
 						# Perform reachability check at initialization time (non-analyst or cache miss)
 						is_reachable = _is_endpoint_reachable(otel_collector_endpoint, retry_enabled=True)
 						logger.info(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
-						print(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
 				
 					if not is_reachable:
 						logger.warning(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
-						print(f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance.")
 						return
 
 				log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
