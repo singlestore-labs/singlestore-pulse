@@ -161,7 +161,7 @@ def _is_endpoint_reachable(endpoint_url: str, retry_enabled: bool = False, timeo
         - Catches any other unexpected exceptions and prints a warning with the error details.
     """
     if not endpoint_url:
-        print("Warning: OTel endpoint URL is empty. Assuming unreachable.")
+        logger.warning("Warning: OTel endpoint URL is empty. Assuming unreachable.")
         return False
 
     if not retry_enabled:
@@ -182,16 +182,16 @@ def _is_endpoint_reachable(endpoint_url: str, retry_enabled: bool = False, timeo
             error_port_str = str(port) if 'port' in locals() and port is not None else "unknown (parsing error or not 4317)"
             
             if attempt < retries - 1:
-                print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds...")
+                logger.warning(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds...")
                 time.sleep(backoff)
             else:
-                print(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable after {retries} retries: {e}")
+                logger.warning(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable after {retries} retries: {e}")
                 return False
         except ValueError as e: # Handle potential errors from urlparse if URL is malformed
-            print(f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable.")
+            logger.warning(f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable.")
             return False
         except Exception as e: # Catch any other unexpected errors during the check
-            print(f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}")
+            logger.warning(f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}")
             return False
     return False
 
@@ -302,29 +302,24 @@ def _perform_otel_collector_reachability_check():
 		kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
 		if kernel_type.lower() != "analyst":
 			logger.debug("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
-			print("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
 			return
 
 
 		cell_short_name = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
 		if not cell_short_name:
 			logger.error("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
-			print("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
 			return
 
 
 		otel_collector_endpoint = f"http://otel-collector-pulse-internal-{cell_short_name}.observability.svc.cluster.local:4317"
 		logger.info(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
-		print(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
 
 		is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
 		_otel_collector_reachability_cache[otel_collector_endpoint] = is_reachable
 
 		if not is_reachable:
 			logger.warning(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
-			print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
 		else:
 			logger.info(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
-			print(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
 	except Exception as e:
 		logger.error(f"[PULSE] Error during import-time reachability check: {e}")
