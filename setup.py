@@ -2,10 +2,10 @@ from setuptools import setup, find_packages
 
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
-    
+
 setup(
     name='singlestore_pulse',
-    version='0.4.8',
+    version='0.4.10',
     packages=find_packages(),
     description='Singlestore Python SDK for OpenTelemetry Integration',
     long_description=open('README.md').read(),
