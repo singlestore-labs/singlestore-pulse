@@ -107,7 +107,7 @@ class Pulse:
 		global _pulse_instance
 
 		if _pulse_instance is not None:
-			logger.info("Pulse instance already exists. Skipping initialization.")
+			logger.warning("Pulse already initialized; ignoring re-initialization (new configuration will not be applied).")
 			# Copy the existing instance's attributes to this instance
 			self.__dict__.update(_pulse_instance.__dict__)
 			return
@@ -258,7 +258,7 @@ class Pulse:
 			end_time = time.time()
 			logger.info(f"Pulse initialized successfully in {end_time - start_time:.2f} seconds.")
 		except Exception as e:
-			logger.error(f"Error initializing Pulse: {e}")
+			logger.error(f"Error initializing Pulse: {e}", exc_info=True)
 			
 	@staticmethod
 	def enable_content_tracing(enabled: bool = True):
