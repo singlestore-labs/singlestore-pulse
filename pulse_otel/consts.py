@@ -19,6 +19,13 @@ APP_BASE_URL = "singlestore.nova.app.base.url"
 LIVE_LOGS_FILE_PATH = "LIVE_LOGS_FILE_PATH"
 SERVER_ID = "singlestore.notebooks.server.id"
 
+# Canonical OTel keys, emitted alongside the singlestore.* keys so the notebook tier
+# joins the Go services.
+ORG_ID = "org.id"
+PROJECT_ID = "project.id"
+SERVICE_VERSION = "service.version"
+DEPLOYMENT_ENV = "deployment.environment.name"
+
 # default env variables from notebook server
 DEFAULT_ENV_VARIABLES = {
 	"SINGLESTOREDB_ORGANIZATION": "",

@@ -1,6 +1,7 @@
 import builtins
 import logging
 import os
+import re
 import socket
 import time
 from urllib.parse import urlparse
@@ -13,6 +14,14 @@ from pulse_otel.consts import (
     HEADER_INCOMING_SESSION_ID,
     SESSION_ID,
     PULSE_INTERNAL_COLLECTOR_ENDPOINT,
+    ORGANIZATION,
+    PROJECT,
+    WORKLOAD_TYPE,
+    APP_NAME,
+    ORG_ID,
+    PROJECT_ID,
+    SERVICE_VERSION,
+    DEPLOYMENT_ENV,
 )
 from traceloop.sdk import Traceloop
 
@@ -66,7 +75,25 @@ def format_env_variables(env_variables):
             return key.lower().replace('_', '.')
 
     converted_env_variables =  {convert_key(k): v for k, v in new_data.items()}
+
+    # Canonical OTel keys alongside the singlestore.* ones so the notebook tier joins the
+    # Go services. The app name carries the build timestamp, so it doubles as the version;
+    # no env var carries the environment, so derive it from the workload type.
+    if ORGANIZATION in converted_env_variables:
+        converted_env_variables[ORG_ID] = converted_env_variables[ORGANIZATION]
+    if PROJECT in converted_env_variables:
+        converted_env_variables[PROJECT_ID] = converted_env_variables[PROJECT]
+    if converted_env_variables.get(APP_NAME):
+        converted_env_variables[SERVICE_VERSION] = converted_env_variables[APP_NAME]
+    if converted_env_variables.get(WORKLOAD_TYPE):
+        converted_env_variables[DEPLOYMENT_ENV] = converted_env_variables[WORKLOAD_TYPE].lower()
+
     return converted_env_variables
+
+
+def service_name() -> str:
+    """Stable OTel service.name — the app name with its trailing build timestamp stripped."""
+    return re.sub(r"-\d{8,}$", "", os.getenv("SINGLESTOREDB_APP_NAME", "") or "sqlbot")
 
 def form_otel_collector_endpoint(
     project_id: str = None,
