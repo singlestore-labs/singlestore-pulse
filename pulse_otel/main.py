@@ -44,7 +44,8 @@ from pulse_otel.util import (
 	is_force_content_tracing_enabled,
 	set_span_attribute_size_limit,
 	_perform_otel_collector_reachability_check,
-	_otel_collector_reachability_cache
+	_otel_collector_reachability_cache,
+	service_name,
 	)
 from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
@@ -120,6 +121,7 @@ class Pulse:
 				set_global_content_tracing(False)
 
 				Traceloop.init(
+					app_name=service_name(),
 					disable_batch=True,
 					resource_attributes=self.config,
 					api_key=api_key,
@@ -132,6 +134,7 @@ class Pulse:
 
 				log_exporter = self.init_log_provider()
 				Traceloop.init(
+					app_name=service_name(),
 					disable_batch=True,
 					exporter=CustomFileSpanExporter(LOCAL_TRACES_FILE),
 					resource_attributes=self.config,
@@ -239,6 +242,7 @@ class Pulse:
 				"""
 				logging.basicConfig(level=logging.INFO)
 				Traceloop.init(
+					app_name=service_name(),
 					disable_batch=True,
 					api_endpoint=otel_collector_endpoint,
 					resource_attributes=self.config,

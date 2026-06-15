@@ -1,6 +1,7 @@
 import builtins
 import logging
 import os
+import re
 import socket
 import time
 from urllib.parse import urlparse
@@ -13,6 +14,15 @@ from pulse_otel.consts import (
     HEADER_INCOMING_SESSION_ID,
     SESSION_ID,
     PULSE_INTERNAL_COLLECTOR_ENDPOINT,
+    ORGANIZATION,
+    PROJECT,
+    WORKLOAD_TYPE,
+    APP_NAME,
+    APP_NAME_PLACEHOLDER,
+    ORG_ID,
+    PROJECT_ID,
+    SERVICE_VERSION,
+    DEPLOYMENT_ENV,
 )
 from traceloop.sdk import Traceloop
 
@@ -20,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Cache for import-time OTel collector reachability check (analyst kernels only)
 _otel_collector_reachability_cache = {}
+
 
 def get_environ_vars():
     """
@@ -45,13 +56,16 @@ def get_environ_vars():
 
     """
 
-    env_variables =  {key: os.getenv(key, default) for key, default in DEFAULT_ENV_VARIABLES.items()}
+    env_variables = {
+        key: os.getenv(key, default) for key, default in DEFAULT_ENV_VARIABLES.items()
+    }
 
     formatted_env_variables = format_env_variables(env_variables)
     return formatted_env_variables
 
+
 def format_env_variables(env_variables):
-    
+
     new_data = {}
     for key, value in env_variables.items():
         # Find if any of the match keys exist in the current key
@@ -63,10 +77,35 @@ def format_env_variables(env_variables):
         new_data[new_key] = value
 
     def convert_key(key):
-            return key.lower().replace('_', '.')
+        return key.lower().replace("_", ".")
 
-    converted_env_variables =  {convert_key(k): v for k, v in new_data.items()}
+    converted_env_variables = {convert_key(k): v for k, v in new_data.items()}
+
+    # Canonical OTel keys alongside the singlestore.* ones so the notebook tier joins the
+    # Go services. The app name carries the build timestamp, so it doubles as the version;
+    # no env var carries the environment, so derive it from the workload type.
+    if ORGANIZATION in converted_env_variables:
+        converted_env_variables[ORG_ID] = converted_env_variables[ORGANIZATION]
+    if PROJECT in converted_env_variables:
+        converted_env_variables[PROJECT_ID] = converted_env_variables[PROJECT]
+    app_name = converted_env_variables.get(APP_NAME)
+    if app_name and app_name != APP_NAME_PLACEHOLDER:
+        converted_env_variables[SERVICE_VERSION] = app_name
+    if converted_env_variables.get(WORKLOAD_TYPE):
+        converted_env_variables[DEPLOYMENT_ENV] = converted_env_variables[
+            WORKLOAD_TYPE
+        ].lower()
+
     return converted_env_variables
+
+
+def service_name() -> str:
+    """Stable OTel service.name — the app name with its trailing build timestamp stripped."""
+    name = os.getenv("SINGLESTOREDB_APP_NAME", "")
+    if name == APP_NAME_PLACEHOLDER:
+        name = ""
+    return re.sub(r"-\d{8,}$", "", name) or "sqlbot"
+
 
 def form_otel_collector_endpoint(
     project_id: str = None,
@@ -80,12 +119,15 @@ def form_otel_collector_endpoint(
     Returns:
         str: The formatted OpenTelemetry collector endpoint URL.
     """
-    
-    if project_id is None or project_id == '':
-        raise ValueError("[Pulse] SINGLESTOREDB_PROJECT is required but not found int env variables.")
+
+    if project_id is None or project_id == "":
+        raise ValueError(
+            "[Pulse] SINGLESTOREDB_PROJECT is required but not found int env variables."
+        )
 
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
+
 
 def extract_session_id(**kwargs) -> str:
     """
@@ -95,28 +137,31 @@ def extract_session_id(**kwargs) -> str:
 
     session_id = None
     try:
-        logger.debug(f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}")
-        session_id = kwargs.get('session_id')
+        logger.debug(
+            f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}"
+        )
+        session_id = kwargs.get("session_id")
         if session_id:
             return session_id
-        request = kwargs.get('request')
+        request = kwargs.get("request")
         if request and hasattr(request, "headers"):
             headers = getattr(request, "headers", {})
         else:
             headers = kwargs.get("headers", {})
 
-        baggage = headers.get('baggage') if hasattr(headers, "get") else None
+        baggage = headers.get("baggage") if hasattr(headers, "get") else None
         if baggage:
-            parts = [item.strip() for item in baggage.split(',')]
+            parts = [item.strip() for item in baggage.split(",")]
             for part in parts:
-                if '=' in part:
-                    key, value = part.split('=', 1)
+                if "=" in part:
+                    key, value = part.split("=", 1)
                     if key.strip() == HEADER_INCOMING_SESSION_ID:
                         session_id = value.strip()
                         break
     except Exception as e:
         logger.error(f"[pulse_agent] Error extracting session ID: {e}")
     return session_id
+
 
 def extract_session_id_from_body(**kwargs) -> Optional[str]:
     """
@@ -127,13 +172,14 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
     try:
         request_body = kwargs.get("body")
         if request_body:
-           
             if isinstance(request_body, dict):
                 return request_body.get("session_id")
-            
+
             # For attribute-style (e.g., Pydantic model)
             elif hasattr(request_body, "session_id"):
-                logger.debug(f"[pulse_agent] DEBUG - Found session_id in request body attributes: {request_body.session_id}")
+                logger.debug(
+                    f"[pulse_agent] DEBUG - Found session_id in request body attributes: {request_body.session_id}"
+                )
                 return getattr(request_body, "session_id")
     except Exception as e:
         logger.error(f"[pulse_agent] Error extracting session_id from body: {e}")
@@ -141,7 +187,13 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
     return None
 
 
-def _is_endpoint_reachable(endpoint_url: str, retry_enabled: bool = False, timeout: int = 3, retries: int = 3, backoff: int = 1) -> bool:
+def _is_endpoint_reachable(
+    endpoint_url: str,
+    retry_enabled: bool = False,
+    timeout: int = 3,
+    retries: int = 3,
+    backoff: int = 1,
+) -> bool:
     """
     Checks if a given endpoint URL is reachable within a specified timeout.
     Args:
@@ -177,23 +229,42 @@ def _is_endpoint_reachable(endpoint_url: str, retry_enabled: bool = False, timeo
                 return True
         except (socket.error, ConnectionRefusedError, socket.timeout) as e:
             # Define host/port for error message, using defaults if parsing failed before assignment.
-            error_host_str = host if 'host' in locals() and host is not None else "unknown (parsing error)"
+            error_host_str = (
+                host
+                if "host" in locals() and host is not None
+                else "unknown (parsing error)"
+            )
             # Port is expected to be 4317 if format is correct.
-            error_port_str = str(port) if 'port' in locals() and port is not None else "unknown (parsing error or not 4317)"
-            
+            error_port_str = (
+                str(port)
+                if "port" in locals() and port is not None
+                else "unknown (parsing error or not 4317)"
+            )
+
             if attempt < retries - 1:
-                logger.warning(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds...")
+                logger.warning(
+                    f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds..."
+                )
                 time.sleep(backoff)
             else:
-                logger.warning(f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable after {retries} retries: {e}")
+                logger.warning(
+                    f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable after {retries} retries: {e}"
+                )
                 return False
-        except ValueError as e: # Handle potential errors from urlparse if URL is malformed
-            logger.warning(f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable.")
+        except (
+            ValueError
+        ) as e:  # Handle potential errors from urlparse if URL is malformed
+            logger.warning(
+                f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable."
+            )
             return False
-        except Exception as e: # Catch any other unexpected errors during the check
-            logger.warning(f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}")
+        except Exception as e:  # Catch any other unexpected errors during the check
+            logger.warning(
+                f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}"
+            )
             return False
     return False
+
 
 def add_session_id_to_span_attributes(**kwargs):
     """
@@ -227,6 +298,7 @@ def add_session_id_to_span_attributes(**kwargs):
     }
     Traceloop.set_association_properties(properties)
 
+
 def set_global_content_tracing(enable_trace_content: bool = True):
     """
     Sets the global content tracing flag for Traceloop.
@@ -234,28 +306,34 @@ def set_global_content_tracing(enable_trace_content: bool = True):
     Args:
         enable_trace_content (bool): If True, enables content tracing; otherwise, disables it.
     """
-    
+
     if enable_trace_content:
-        logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
-        os.environ['TRACELOOP_TRACE_CONTENT'] = 'true'
+        logger.info(
+            "[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes."
+        )
+        os.environ["TRACELOOP_TRACE_CONTENT"] = "true"
     else:
-        logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
-        os.environ['TRACELOOP_TRACE_CONTENT'] = 'false'
+        logger.info(
+            "[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes."
+        )
+        os.environ["TRACELOOP_TRACE_CONTENT"] = "false"
+
 
 def is_s2_owned_app():
-	"""
-	Determines if the current app or agent is a first-party (S2-owned) application.
-	Checks for the presence of the 'S2_OWNED_APP' attribute in the builtins module,
-	which is injected as a notebook parameter for first-party apps.
-	Returns:
-		bool: True if 'S2_OWNED_APP' is set in builtins, otherwise False.
-	"""
+    """
+    Determines if the current app or agent is a first-party (S2-owned) application.
+    Checks for the presence of the 'S2_OWNED_APP' attribute in the builtins module,
+    which is injected as a notebook parameter for first-party apps.
+    Returns:
+            bool: True if 'S2_OWNED_APP' is set in builtins, otherwise False.
+    """
 
-	is_s2_owned_app = getattr(builtins, "S2_OWNED_APP", None)
-	if is_s2_owned_app is not None:
-		return is_s2_owned_app
-	else:
-		return False
+    is_s2_owned_app = getattr(builtins, "S2_OWNED_APP", None)
+    if is_s2_owned_app is not None:
+        return is_s2_owned_app
+    else:
+        return False
+
 
 def is_force_content_tracing_enabled():
     """
@@ -267,6 +345,7 @@ def is_force_content_tracing_enabled():
     """
     return getattr(builtins, "FORCE_CONTENT_TRACING", False)
 
+
 def get_internal_collector_endpoint() -> str:
     """
     Forms the OpenTelemetry collector endpoint URL for internal Observability.
@@ -277,49 +356,63 @@ def get_internal_collector_endpoint() -> str:
 
     nova_cell_shortname = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
     if not nova_cell_shortname:
-        raise ValueError("[Pulse] SINGLESTOREDB_CELL_SHORT_NAME is required for Internal Observability but not found in env variables.")
+        raise ValueError(
+            "[Pulse] SINGLESTOREDB_CELL_SHORT_NAME is required for Internal Observability but not found in env variables."
+        )
 
     pulse_internal_collector_endpoint_str = str(PULSE_INTERNAL_COLLECTOR_ENDPOINT)
-    return pulse_internal_collector_endpoint_str.replace("{NOVA_CELL_PLACEHOLDER}", nova_cell_shortname)
+    return pulse_internal_collector_endpoint_str.replace(
+        "{NOVA_CELL_PLACEHOLDER}", nova_cell_shortname
+    )
+
 
 def set_span_attribute_size_limit(size_limit: int):
     """
     Sets the maximum size limit in characters for a string-valued span attributes in opentelemetry.
     If the size of the attribute value exceeds this limit, it gets truncated.
-    
+
     Args:
         size_limit (int): The maximum size limit for span attributes in characters.
     """
-    os.environ['OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT'] = str(size_limit)
+    os.environ["OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT"] = str(size_limit)
+
 
 # Perform import-time OTel collector reachability check for analyst kernels
 def _perform_otel_collector_reachability_check():
-	"""
-	Performs the OTel collector reachability check at import time
-	if the kernel type is 'analyst'. Stores the result in a cache.
-	"""
-	try:
-		kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
-		if kernel_type.lower() != "analyst":
-			logger.debug("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
-			return
+    """
+    Performs the OTel collector reachability check at import time
+    if the kernel type is 'analyst'. Stores the result in a cache.
+    """
+    try:
+        kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
+        if kernel_type.lower() != "analyst":
+            logger.debug(
+                "[PULSE] Not an analyst kernel. Skipping import-time reachability check."
+            )
+            return
 
+        cell_short_name = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
+        if not cell_short_name:
+            logger.error(
+                "[PULSE] Cell short name is not set. Skipping import-time reachability check."
+            )
+            return
 
-		cell_short_name = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
-		if not cell_short_name:
-			logger.error("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
-			return
+        otel_collector_endpoint = f"http://otel-collector-pulse-internal-{cell_short_name}.observability.svc.cluster.local:4317"
+        logger.info(
+            f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}"
+        )
 
+        is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
+        _otel_collector_reachability_cache[otel_collector_endpoint] = is_reachable
 
-		otel_collector_endpoint = f"http://otel-collector-pulse-internal-{cell_short_name}.observability.svc.cluster.local:4317"
-		logger.info(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
-
-		is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
-		_otel_collector_reachability_cache[otel_collector_endpoint] = is_reachable
-
-		if not is_reachable:
-			logger.warning(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable.")
-		else:
-			logger.info(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
-	except Exception as e:
-		logger.error(f"[PULSE] Error during import-time reachability check: {e}")
+        if not is_reachable:
+            logger.warning(
+                f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable."
+            )
+        else:
+            logger.info(
+                f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable."
+            )
+    except Exception as e:
+        logger.error(f"[PULSE] Error during import-time reachability check: {e}")
