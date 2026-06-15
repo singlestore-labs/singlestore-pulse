@@ -101,7 +101,7 @@ def format_env_variables(env_variables):
 
 def service_name() -> str:
     """Stable OTel service.name — the app name with its trailing build timestamp stripped."""
-    return re.sub(r"-\d{8,}$", "", os.getenv("SINGLESTOREDB_APP_NAME", "") or "sqlbot")
+    return re.sub(r"-\d{8,}$", "", os.getenv("SINGLESTOREDB_APP_NAME", "")) or "sqlbot"
 
 
 def form_otel_collector_endpoint(
