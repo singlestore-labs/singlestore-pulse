@@ -116,6 +116,9 @@ class Pulse:
 		try:
 			
 			self.config = get_environ_vars()
+			# Reuse the attrs Traceloop puts on spans for the log providers below; without a
+			# Resource, OTel stamps every log record with service.name="unknown_service".
+			log_resource = Resource.create({**self.config, SERVICE_NAME: service_name()})
 			if write_to_traceloop and api_key:
 				log_exporter = self.init_log_provider()
 				set_global_content_tracing(False)
@@ -144,7 +147,7 @@ class Pulse:
 				# create json log exporter for live logs
 				jsonl_file_exporter = get_jsonl_file_exporter()
 				if jsonl_file_exporter is not None:
-					log_provider = LoggerProvider()
+					log_provider = LoggerProvider(resource=log_resource)
 					_logs.set_logger_provider(log_provider)
 					log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 					logging.root.addHandler(LoggingHandler()) # add filehandler to root logger
@@ -195,7 +198,7 @@ class Pulse:
 					Use the provided OTLP collector endpoint
 					First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
 				"""
-				log_provider = LoggerProvider()
+				log_provider = LoggerProvider(resource=log_resource)
 				_logs.set_logger_provider(log_provider)
 
 				# create json log exporter for live logs
@@ -286,7 +289,7 @@ class Pulse:
 		Initializes the log provider and sets up the logging configuration.
 		"""
 		# Create the log provider and processor
-		log_provider = LoggerProvider()
+		log_provider = LoggerProvider(resource=Resource.create({**self.config, SERVICE_NAME: service_name()}))
 		log_exporter = FileLogExporter(LOCAL_LOGS_FILE)
 		log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
