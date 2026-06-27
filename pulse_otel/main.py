@@ -29,6 +29,10 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.propagate import set_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from opentelemetry.baggage.propagation import W3CBaggagePropagator
 
 from fastapi import Request
 
@@ -244,6 +248,10 @@ class Pulse:
 					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
 				"""
 				logging.basicConfig(level=logging.INFO)
+				# Pin the W3C tracecontext + baggage propagators so downstream propagate.inject/extract stays deterministic regardless of any OTEL_PROPAGATORS env.
+				set_global_textmap(
+					CompositePropagator([TraceContextTextMapPropagator(), W3CBaggagePropagator()])
+				)
 				Traceloop.init(
 					app_name=service_name(),
 					disable_batch=True,
