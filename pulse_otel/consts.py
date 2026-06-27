@@ -28,6 +28,14 @@ PROJECT_ID = "project.id"
 SERVICE_VERSION = "service.version"
 DEPLOYMENT_ENV = "deployment.environment.name"
 
+# aura-otel cross-service W3C baggage keys — MUST match github.com/singlestore/aura-otel/otelctx
+# (BaggageOrg/Project/NovaID/NovaType/NovaName); the Go services resolve identity from these.
+BAGGAGE_ORG = "org"
+BAGGAGE_PROJECT = "project"
+BAGGAGE_NOVA_ID = "nova.id"
+BAGGAGE_NOVA_TYPE = "nova.type"
+BAGGAGE_NOVA_NAME = "nova.name"
+
 # Placeholder app name from DEFAULT_ENV_VARIABLES — must never leak into service.version.
 APP_NAME_PLACEHOLDER = "MY_APP_NAME"
 
