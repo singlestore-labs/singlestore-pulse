@@ -94,6 +94,21 @@ def _process_identity_baggage():
 	return {k: v for k, v in identity.items() if v}
 
 
+def _apply_identity_baggage(context, identity):
+	ctx = context if context is not None else get_current()
+	for key, value in identity.items():
+		ctx = set_baggage(key, value, context=ctx)
+	return ctx
+
+
+def seed_identity_baggage(context=None):
+	"""Seed this process's identity (org/project/nova, on the aura-otel contract
+	keys) onto *context* and return it. The global propagator installed by Pulse
+	already injects these on every outbound call; call this only to seed a context
+	explicitly. Per-request dims (session/domain) are the caller's job."""
+	return _apply_identity_baggage(context, _process_identity_baggage())
+
+
 class _IdentityBaggagePropagator(W3CBaggagePropagator):
 	"""W3C baggage propagator that also injects the per-process identity from
 	_process_identity_baggage() on inject, so downstream Go services stamp
@@ -104,9 +119,7 @@ class _IdentityBaggagePropagator(W3CBaggagePropagator):
 		self._identity = _process_identity_baggage()
 
 	def inject(self, carrier, context=None, setter=default_setter):
-		ctx = context if context is not None else get_current()
-		for key, value in self._identity.items():
-			ctx = set_baggage(key, value, context=ctx)
+		ctx = _apply_identity_baggage(context, self._identity)
 		super().inject(carrier, context=ctx, setter=setter)
 
 
