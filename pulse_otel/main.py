@@ -13,7 +13,7 @@ from opentelemetry import _logs
 from opentelemetry import trace
 from opentelemetry.propagate import extract
 from opentelemetry.trace import SpanKind
-from opentelemetry.context import attach, set_value, get_current
+from opentelemetry.context import attach, set_value
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter, LogExportResult, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
@@ -32,9 +32,6 @@ from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.propagate import set_global_textmap
 from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-from opentelemetry.baggage.propagation import W3CBaggagePropagator
-from opentelemetry.baggage import set_baggage
-from opentelemetry.propagators.textmap import default_setter
 
 from fastapi import Request
 
@@ -57,14 +54,9 @@ from pulse_otel.consts import (
 	LOCAL_TRACES_FILE,
 	LOCAL_LOGS_FILE,
 	PROJECT,
-	APP_NAME_PLACEHOLDER,
-	BAGGAGE_ORG,
-	BAGGAGE_PROJECT,
-	BAGGAGE_NOVA_ID,
-	BAGGAGE_NOVA_TYPE,
-	BAGGAGE_NOVA_NAME,
 	LIVE_LOGS_FILE_PATH,
 )
+from pulse_otel.identity import _IdentityBaggagePropagator
 import logging
 
 _pulse_instance = None
@@ -76,51 +68,6 @@ tracer = trace.get_tracer(__name__)
 
 # Run the OTel collector reachability check at import time for analyst kernels
 _perform_otel_collector_reachability_check()
-
-
-def _process_identity_baggage():
-	"""Fixed per-process identity (org/project + the agent's nova app) on the
-	aura-otel contract keys, from the notebook-server env. Per-request dims
-	(session/domain) are not here; the caller seeds those. Empty/placeholder
-	values are dropped."""
-	name = os.getenv("SINGLESTOREDB_APP_NAME", "")
-	identity = {
-		BAGGAGE_ORG: os.getenv("SINGLESTOREDB_ORGANIZATION", ""),
-		BAGGAGE_PROJECT: os.getenv("SINGLESTOREDB_PROJECT", ""),
-		BAGGAGE_NOVA_ID: os.getenv("SINGLESTOREDB_APP_ID", ""),
-		BAGGAGE_NOVA_TYPE: os.getenv("SINGLESTOREDB_APP_TYPE", ""),
-		BAGGAGE_NOVA_NAME: "" if name == APP_NAME_PLACEHOLDER else name,
-	}
-	return {k: v for k, v in identity.items() if v}
-
-
-def _apply_identity_baggage(context, identity):
-	ctx = context if context is not None else get_current()
-	for key, value in identity.items():
-		ctx = set_baggage(key, value, context=ctx)
-	return ctx
-
-
-def seed_identity_baggage(context=None):
-	"""Seed this process's identity (org/project/nova, on the aura-otel contract
-	keys) onto *context* and return it. The global propagator installed by Pulse
-	already injects these on every outbound call; call this only to seed a context
-	explicitly. Per-request dims (session/domain) are the caller's job."""
-	return _apply_identity_baggage(context, _process_identity_baggage())
-
-
-class _IdentityBaggagePropagator(W3CBaggagePropagator):
-	"""W3C baggage propagator that also injects the per-process identity from
-	_process_identity_baggage() on inject, so downstream Go services stamp
-	org/project/nova from baggage. Inbound/per-request baggage passes through."""
-
-	def __init__(self):
-		super().__init__()
-		self._identity = _process_identity_baggage()
-
-	def inject(self, carrier, context=None, setter=default_setter):
-		ctx = _apply_identity_baggage(context, self._identity)
-		super().inject(carrier, context=ctx, setter=setter)
 
 
 class Pulse:
