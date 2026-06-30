@@ -29,6 +29,9 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.propagate import set_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from fastapi import Request
 
@@ -53,6 +56,7 @@ from pulse_otel.consts import (
 	PROJECT,
 	LIVE_LOGS_FILE_PATH,
 )
+from pulse_otel.identity import _IdentityBaggagePropagator
 import logging
 
 _pulse_instance = None
@@ -64,6 +68,7 @@ tracer = trace.get_tracer(__name__)
 
 # Run the OTel collector reachability check at import time for analyst kernels
 _perform_otel_collector_reachability_check()
+
 
 class Pulse:
 	def __init__(
@@ -244,6 +249,10 @@ class Pulse:
 					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
 				"""
 				logging.basicConfig(level=logging.INFO)
+				# Pin the W3C tracecontext + baggage propagators so downstream propagate.inject/extract stays deterministic regardless of any OTEL_PROPAGATORS env.
+				set_global_textmap(
+					CompositePropagator([TraceContextTextMapPropagator(), _IdentityBaggagePropagator()])
+				)
 				Traceloop.init(
 					app_name=service_name(),
 					disable_batch=True,
