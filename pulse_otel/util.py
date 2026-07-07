@@ -21,6 +21,8 @@ from pulse_otel.consts import (
     APP_NAME_PLACEHOLDER,
     ORG_ID,
     PROJECT_ID,
+    SINGLESTORE_ORG_ID,
+    SINGLESTORE_PROJECT_ID,
     SERVICE_VERSION,
     DEPLOYMENT_ENV,
 )
@@ -86,8 +88,14 @@ def format_env_variables(env_variables):
     # no env var carries the environment, so derive it from the workload type.
     if ORGANIZATION in converted_env_variables:
         converted_env_variables[ORG_ID] = converted_env_variables[ORGANIZATION]
+        converted_env_variables[SINGLESTORE_ORG_ID] = converted_env_variables[
+            ORGANIZATION
+        ]
     if PROJECT in converted_env_variables:
         converted_env_variables[PROJECT_ID] = converted_env_variables[PROJECT]
+        converted_env_variables[SINGLESTORE_PROJECT_ID] = converted_env_variables[
+            PROJECT
+        ]
     app_name = converted_env_variables.get(APP_NAME)
     if app_name and app_name != APP_NAME_PLACEHOLDER:
         converted_env_variables[SERVICE_VERSION] = app_name

@@ -30,6 +30,10 @@ SERVER_ID = "singlestore.notebooks.server.id"
 # joins the Go services.
 ORG_ID = "org.id"
 PROJECT_ID = "project.id"
+# Canonical singlestore.* tenant keys used by the Go services (aura-otel/otelctx)
+# and the baggage span processor; emitted so a filter on these catches Python spans.
+SINGLESTORE_ORG_ID = "singlestore.org.id"
+SINGLESTORE_PROJECT_ID = "singlestore.project.id"
 SERVICE_VERSION = "service.version"
 DEPLOYMENT_ENV = "deployment.environment.name"
 
