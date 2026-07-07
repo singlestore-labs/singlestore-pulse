@@ -1,19 +1,19 @@
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as f:
+with open("requirements.txt") as f:
     requirements = [s for line in f if (s := line.strip()) and not s.startswith("#")]
 
 setup(
-    name='singlestore_pulse',
-    version='0.4.13',
+    name="singlestore_pulse",
+    version="0.4.14",
     packages=find_packages(),
-    description='Singlestore Python SDK for OpenTelemetry Integration',
-    long_description=open('README.md').read(),
-    long_description_content_type='text/markdown',
+    description="Singlestore Python SDK for OpenTelemetry Integration",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     install_requires=requirements,
-    author='Ashutosh Anshu',
-    author_email='aanshu@singlestore.com',
+    author="Ashutosh Anshu",
+    author_email="aanshu@singlestore.com",
     classifiers=[
-        'Programming Language :: Python :: 3.12',
+        "Programming Language :: Python :: 3.12",
     ],
 )

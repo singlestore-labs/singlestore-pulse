@@ -7,7 +7,11 @@ import time
 from urllib.parse import urlparse
 from typing import Optional
 
+from opentelemetry.baggage import set_baggage
+from opentelemetry.context import attach
+
 from pulse_otel.consts import (
+    BAGGAGE_SESSION,
     OTEL_COLLECTOR_ENDPOINT,
     DEFAULT_ENV_VARIABLES,
     ENV_VARIABLES_MAPPING,
@@ -305,6 +309,7 @@ def add_session_id_to_span_attributes(**kwargs):
         SESSION_ID: session_id,
     }
     Traceloop.set_association_properties(properties)
+    attach(set_baggage(BAGGAGE_SESSION, session_id))
 
 
 def set_global_content_tracing(enable_trace_content: bool = True):

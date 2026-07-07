@@ -61,7 +61,7 @@ from pulse_otel.consts import (
     PROJECT,
     LIVE_LOGS_FILE_PATH,
 )
-from pulse_otel.identity import _IdentityBaggagePropagator
+from pulse_otel.identity import _IdentityBaggagePropagator, seed_identity_baggage
 from pulse_otel.spanprocessor import BaggageSpanProcessor
 
 _pulse_instance = None
@@ -149,6 +149,9 @@ class Pulse:
                     [TraceContextTextMapPropagator(), _IdentityBaggagePropagator()]
                 )
             )
+            # Attach process identity to the active context so in-process spans
+            # get it via the BaggageSpanProcessor, not only outbound-injected ones.
+            attach(seed_identity_baggage())
             # Reuse the attrs Traceloop puts on spans for the log providers below; without a
             # Resource, OTel stamps every log record with service.name="unknown_service".
             log_resource = Resource.create(
