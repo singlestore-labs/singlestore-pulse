@@ -10,8 +10,10 @@ from opentelemetry.sdk.trace import SpanProcessor
 from pulse_otel.consts import (
     ORGANIZATION,
     ORG_ID,
+    SINGLESTORE_ORG_ID,
     PROJECT,
     PROJECT_ID,
+    SINGLESTORE_PROJECT_ID,
     DOMAIN_ID,
     SESSION_ID,
     CONVERSATION_ID,
@@ -41,8 +43,8 @@ class BaggageSpanProcessor(SpanProcessor):
                 for attr_key in attr_keys:
                     span.set_attribute(attr_key, value)
 
-        stamp(BAGGAGE_ORG, ORGANIZATION, ORG_ID)
-        stamp(BAGGAGE_PROJECT, PROJECT, PROJECT_ID)
+        stamp(BAGGAGE_ORG, ORGANIZATION, ORG_ID, SINGLESTORE_ORG_ID)
+        stamp(BAGGAGE_PROJECT, PROJECT, PROJECT_ID, SINGLESTORE_PROJECT_ID)
         stamp(BAGGAGE_DOMAIN, DOMAIN_ID)
         stamp(BAGGAGE_SESSION, SESSION_ID, CONVERSATION_ID, SESSION_ID_ALIAS)
         stamp(BAGGAGE_NEXUS_ID, NEXUS_APP_ID)

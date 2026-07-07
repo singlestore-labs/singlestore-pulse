@@ -166,6 +166,7 @@ class Pulse:
                     logging_exporter=log_exporter,
                     telemetry_enabled=False,
                 )
+                _register_baggage_span_processor()
 
             elif write_to_file and not without_traceloop:
                 set_global_content_tracing(
@@ -180,6 +181,7 @@ class Pulse:
                     resource_attributes=self.config,
                     logging_exporter=log_exporter,
                 )
+                _register_baggage_span_processor()
             elif only_live_logs:
                 # create json log exporter for live logs
                 jsonl_file_exporter = get_jsonl_file_exporter()
@@ -207,6 +209,7 @@ class Pulse:
                     logger.info(f"Writing traces to file: {LOCAL_TRACES_FILE}")
                     exporter = CustomFileSpanExporter(LOCAL_TRACES_FILE)
 
+                provider.add_span_processor(BaggageSpanProcessor())
                 span_processor = BatchSpanProcessor(exporter)
                 provider.add_span_processor(span_processor)
                 trace.set_tracer_provider(provider)
