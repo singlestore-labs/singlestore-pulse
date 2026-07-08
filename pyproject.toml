@@ -42,7 +42,7 @@ pulse_otel = ["py.typed"]
 
 [dependency-groups]
 dev = ["ruff>=0.12.10"]
-test = ["pytest>=8.0.0", "pytest-mock>=3.0.0"]
+test = ["pytest>=8.0.0", "pytest-mock>=3.0.0", "pytest-cov>=6.0.0"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

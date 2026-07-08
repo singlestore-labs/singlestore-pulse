@@ -149,7 +149,10 @@ def main() -> None:
         print("❌ Working tree dirty; commit or stash first")
         sys.exit(1)
 
-    run_command(["git", "fetch", "--quiet", "origin", BRANCH])
+    ok, out = run_command(["git", "fetch", "--quiet", "origin", BRANCH])
+    if not ok:
+        print(f"❌ git fetch origin {BRANCH} failed: {out}")
+        sys.exit(1)
     ok, _ = run_command(["git", "merge-base", "--is-ancestor", f"origin/{BRANCH}", "HEAD"])
     if not ok:
         print(f"❌ Local {BRANCH} behind origin; pull first")
