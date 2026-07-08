@@ -1,68 +1,61 @@
 import functools
-import os
-import logging
-import typing
-import time
 import inspect
+import logging
+import os
+import time
+import typing
 
-from traceloop.sdk import Traceloop
-from traceloop.sdk.decorators import agent, tool
-from traceloop.sdk.instruments import Instruments
-
-from opentelemetry import _logs
-from opentelemetry import trace
-from opentelemetry.propagate import extract
-from opentelemetry.trace import SpanKind
+from fastapi import Request
+from opentelemetry import _logs, trace
 from opentelemetry.context import attach, set_value
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler, LogData
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
+    OTLPLogExporter,
+)
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+    OTLPSpanExporter,
+)
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.propagate import extract, set_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
+from opentelemetry.sdk._logs import LogData, LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import (
     BatchLogRecordProcessor,
     LogExporter,
     LogExportResult,
     SimpleLogRecordProcessor,
 )
-from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-    OTLPSpanExporter,
-)
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
-    OTLPLogExporter,
-)
-from opentelemetry.trace import TracerProvider
-from opentelemetry.sdk.trace import export, TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.propagate import set_global_textmap
-from opentelemetry.propagators.composite import CompositePropagator
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter, SpanExportResult
+from opentelemetry.trace import SpanKind
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from traceloop.sdk import Traceloop
+from traceloop.sdk.decorators import agent, tool
+from traceloop.sdk.instruments import Instruments
 
-from fastapi import Request
-
-
-from pulse_otel.util import (
-    get_environ_vars,
-    form_otel_collector_endpoint,
-    _is_endpoint_reachable,
-    add_session_id_to_span_attributes,
-    set_global_content_tracing,
-    is_s2_owned_app,
-    get_internal_collector_endpoint,
-    is_force_content_tracing_enabled,
-    set_span_attribute_size_limit,
-    _perform_otel_collector_reachability_check,
-    _otel_collector_reachability_cache,
-    service_name,
-)
 from pulse_otel.consts import (
-    LOCAL_TRACES_FILE,
-    LOCAL_LOGS_FILE,
-    PROJECT,
     LIVE_LOGS_FILE_PATH,
+    LOCAL_LOGS_FILE,
+    LOCAL_TRACES_FILE,
+    PROJECT,
 )
 from pulse_otel.identity import _IdentityBaggagePropagator, seed_identity_baggage
 from pulse_otel.spanprocessor import BaggageSpanProcessor
+from pulse_otel.util import (
+    _is_endpoint_reachable,
+    _otel_collector_reachability_cache,
+    _perform_otel_collector_reachability_check,
+    add_session_id_to_span_attributes,
+    form_otel_collector_endpoint,
+    get_environ_vars,
+    get_internal_collector_endpoint,
+    is_force_content_tracing_enabled,
+    is_s2_owned_app,
+    service_name,
+    set_global_content_tracing,
+    set_span_attribute_size_limit,
+)
 
 _pulse_instance = None
 
@@ -73,9 +66,7 @@ def _register_baggage_span_processor():
     provider = trace.get_tracer_provider()
     add = getattr(provider, "add_span_processor", None)
     if add is None:
-        logger.warning(
-            "[PULSE] Tracer provider has no add_span_processor; skipping BaggageSpanProcessor."
-        )
+        logger.warning("[PULSE] Tracer provider has no add_span_processor; skipping BaggageSpanProcessor.")
         return
     add(BaggageSpanProcessor())
 
@@ -94,8 +85,8 @@ class Pulse:
         self,
         write_to_file: bool = False,
         write_to_traceloop: bool = False,
-        api_key: str = None,
-        otel_collector_endpoint: str = None,
+        api_key: str | None = None,
+        otel_collector_endpoint: str | None = None,
         only_live_logs: bool = False,
         enable_trace_content=True,
         without_traceloop: bool = False,
@@ -113,17 +104,22 @@ class Pulse:
                 otel_collector_endpoint (str): Endpoint for the OpenTelemetry collector. Used if sending data to OTLP.
                 only_live_logs (bool): If True, only live logs are captured and sent to a JSONL file.
                 enable_trace_content (bool): If True, enables content tracing for spans.
-                without_traceloop (bool): If True, disables Traceloop integration and uses OTLP or file exporters directly.
-                telemetry_enabled (bool): If True, enables telemetry and sends traces/logs to the internal Pulse OTLP collector. Also it disables content tracing.
+                without_traceloop (bool): If True, disables Traceloop integration and uses OTLP or file
+                        exporters directly.
+                telemetry_enabled (bool): If True, enables telemetry and sends traces/logs to the internal
+                        Pulse OTLP collector. Also it disables content tracing.
 
         Behavior:
                 - If a Pulse instance already exists, reuses its configuration.
                 - Sets up content tracing based on `enable_trace_content`.
                 - If `write_to_traceloop` and `api_key` are provided, initializes Traceloop with log exporter.
-                - If `write_to_file` and not `without_traceloop`, initializes Traceloop with custom file span exporter and log exporter.
+                - If `write_to_file` and not `without_traceloop`, initializes Traceloop with custom file span
+                        exporter and log exporter.
                 - If `only_live_logs`, sets up a JSONL log exporter for live logs.
-                - If `without_traceloop` and `otel_collector_endpoint` is provided, sets up OTLP span exporter and optional file exporter.
-                - If none of the above, determines OTLP collector endpoint (internal or external), sets up OTLP log exporter and Traceloop with OTLP span exporter.
+                - If `without_traceloop` and `otel_collector_endpoint` is provided, sets up OTLP span exporter
+                        and optional file exporter.
+                - If none of the above, determines OTLP collector endpoint (internal or external), sets up OTLP
+                        log exporter and Traceloop with OTLP span exporter.
                 - Handles endpoint reachability and logs warnings if the OTLP collector is not reachable.
                 - Always sets up appropriate logger providers, log processors, and handlers for OpenTelemetry logging.
         """
@@ -144,19 +140,13 @@ class Pulse:
             # Install the W3C tracecontext + identity-baggage propagator unconditionally,
             # before any reachability/branch early-return below, so outbound calls always
             # carry traceparent + identity baggage even when export is degraded.
-            set_global_textmap(
-                CompositePropagator(
-                    [TraceContextTextMapPropagator(), _IdentityBaggagePropagator()]
-                )
-            )
+            set_global_textmap(CompositePropagator([TraceContextTextMapPropagator(), _IdentityBaggagePropagator()]))
             # Attach process identity to the active context so in-process spans
             # get it via the BaggageSpanProcessor, not only outbound-injected ones.
             attach(seed_identity_baggage())
             # Reuse the attrs Traceloop puts on spans for the log providers below; without a
             # Resource, OTel stamps every log record with service.name="unknown_service".
-            log_resource = Resource.create(
-                {**self.config, SERVICE_NAME: service_name()}
-            )
+            log_resource = Resource.create({**self.config, SERVICE_NAME: service_name()})
             if write_to_traceloop and api_key:
                 log_exporter = self.init_log_provider()
                 set_global_content_tracing(False)
@@ -172,9 +162,7 @@ class Pulse:
                 _register_baggage_span_processor()
 
             elif write_to_file and not without_traceloop:
-                set_global_content_tracing(
-                    enable_trace_content and not telemetry_enabled
-                )
+                set_global_content_tracing(enable_trace_content and not telemetry_enabled)
 
                 log_exporter = self.init_log_provider()
                 Traceloop.init(
@@ -191,12 +179,8 @@ class Pulse:
                 if jsonl_file_exporter is not None:
                     log_provider = LoggerProvider(resource=log_resource)
                     _logs.set_logger_provider(log_provider)
-                    log_provider.add_log_record_processor(
-                        SimpleLogRecordProcessor(jsonl_file_exporter)
-                    )
-                    logging.root.addHandler(
-                        LoggingHandler()
-                    )  # add filehandler to root logger
+                    log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
+                    logging.root.addHandler(LoggingHandler())  # add filehandler to root logger
             elif without_traceloop and otel_collector_endpoint is not None:
                 resource = Resource(
                     attributes={
@@ -204,9 +188,7 @@ class Pulse:
                     }
                 )
                 provider = TracerProvider(resource=resource)
-                exporter = OTLPSpanExporter(
-                    endpoint=otel_collector_endpoint, insecure=True
-                )
+                exporter = OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
 
                 if write_to_file:
                     logger.info(f"Writing traces to file: {LOCAL_TRACES_FILE}")
@@ -224,17 +206,20 @@ class Pulse:
             else:
                 if is_force_content_tracing_enabled():
                     logger.info(
-                        "[PULSE] Force content tracing is enabled. Traces will be sent to project specific OpenTelemetry collector and Content Tracing will be enabled."
+                        "[PULSE] Force content tracing is enabled. Traces will be sent to project specific "
+                        "OpenTelemetry collector and Content Tracing will be enabled."
                     )
                     set_span_attribute_size_limit(span_attribute_size_limit)
                 elif telemetry_enabled or is_s2_owned_app():
                     if telemetry_enabled:
                         logger.info(
-                            "[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled."
+                            "[PULSE] Telemetry enabled. Traces and logs will be sent to the Pulse Internal "
+                            "OpenTelemetry collector and Content Tracing will be disabled."
                         )
                     else:
                         logger.info(
-                            "[PULSE] S2 owned app detected. Traces and logs will be sent to the Pulse Internal OpenTelemetry collector and Content Tracing will be disabled."
+                            "[PULSE] S2 owned app detected. Traces and logs will be sent to the Pulse Internal "
+                            "OpenTelemetry collector and Content Tracing will be disabled."
                         )
 
                     set_global_content_tracing(False)
@@ -242,20 +227,20 @@ class Pulse:
 
                 if otel_collector_endpoint is None:
                     try:
-                        projectID = self.config[str(PROJECT)]
-                    except KeyError:
-                        raise ValueError(
-                            f"Project ID '{PROJECT}' not found in configuration."
-                        )
-                    otel_collector_endpoint = form_otel_collector_endpoint(projectID)
+                        project_id = self.config[str(PROJECT)]
+                    except KeyError as err:
+                        raise ValueError(f"Project ID '{PROJECT}' not found in configuration.") from err
+                    otel_collector_endpoint = form_otel_collector_endpoint(project_id)
 
-                logger.info(
-                    f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}"
-                )
+                logger.info(f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}")
 
                 """
 					Use the provided OTLP collector endpoint
-					First, a new LoggerProvider is created and set as the global logger provider. This object manages loggers and their configuration for the application. Next, an OTLPLogExporter is instantiated with the given endpoint, which is responsible for sending log records to the OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log records for efficient export, and this processor is registered with the logger provider.
+					First, a new LoggerProvider is created and set as the global logger provider. This object
+					manages loggers and their configuration for the application. Next, an OTLPLogExporter is
+					instantiated with the given endpoint, which is responsible for sending log records to the
+					OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log
+					records for efficient export, and this processor is registered with the logger provider.
 				"""
                 log_provider = LoggerProvider(resource=log_resource)
                 _logs.set_logger_provider(log_provider)
@@ -263,9 +248,7 @@ class Pulse:
                 # create json log exporter for live logs
                 jsonl_file_exporter = get_jsonl_file_exporter()
                 if jsonl_file_exporter is not None:
-                    log_provider.add_log_record_processor(
-                        SimpleLogRecordProcessor(jsonl_file_exporter)
-                    )
+                    log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
                 # Check if endpoint is reachable
                 # For analyst kernels, use cached result from import time check
@@ -275,52 +258,47 @@ class Pulse:
                 if not skip_reachability_check:
                     if (
                         kernel_type.lower() == "analyst"
-                        and otel_collector_endpoint
-                        in _otel_collector_reachability_cache
+                        and otel_collector_endpoint in _otel_collector_reachability_cache
                     ):
                         # Use cached result from import-time check
-                        is_reachable = _otel_collector_reachability_cache[
-                            otel_collector_endpoint
-                        ]
-                        logger.info(
-                            f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}"
-                        )
+                        is_reachable = _otel_collector_reachability_cache[otel_collector_endpoint]
+                        logger.info(f"[PULSE] Using cached reachability result for analyst kernel: {is_reachable}")
                     else:
                         # Perform reachability check at initialization time (non-analyst or cache miss)
-                        is_reachable = _is_endpoint_reachable(
-                            otel_collector_endpoint, retry_enabled=True
-                        )
-                        logger.info(
-                            f"[PULSE] OTel collector endpoint reachability: {is_reachable}"
-                        )
+                        is_reachable = _is_endpoint_reachable(otel_collector_endpoint, retry_enabled=True)
+                        logger.info(f"[PULSE] OTel collector endpoint reachability: {is_reachable}")
 
                     if not is_reachable:
                         logger.warning(
-                            f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. Please enable Pulse Tracing or contact the support team for more assistance."
+                            f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. "
+                            "Please enable Pulse Tracing or contact the support team for more assistance."
                         )
                         return
 
                 log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
-                log_provider.add_log_record_processor(
-                    BatchLogRecordProcessor(log_exporter)
-                )
+                log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
                 """
-					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use the custom logger provider. The Python logging system is configured via logging.basicConfig to use this handler and to set the root logger’s level to INFO. This means all logs at INFO level or higher will be processed and sent to the OTLP collector, while the handler itself is capable of handling DEBUG logs if needed.
+					A LoggingHandler is then created, configured to capture logs at the DEBUG level and to use
+					the custom logger provider. The Python logging system is configured via logging.basicConfig
+					to use this handler and to set the root logger's level to INFO. This means all logs at INFO
+					level or higher will be processed and sent to the OTLP collector, while the handler itself is
+					capable of handling DEBUG logs if needed.
 				"""
-                handler = LoggingHandler(
-                    level=logging.DEBUG, logger_provider=log_provider
-                )
+                handler = LoggingHandler(level=logging.DEBUG, logger_provider=log_provider)
                 logging.root.addHandler(handler)
 
                 """
-					In Python logging, both the logger and the handler have their own log levels, and both levels must be satisfied for a log record to be processed and exported.
+					In Python logging, both the logger and the handler have their own log levels, and both levels
+					must be satisfied for a log record to be processed and exported.
 
 					1. Handler Level (LoggingHandler(level=logging.DEBUG, ...)):
-					This means the handler is willing to process log records at DEBUG level and above (DEBUG, INFO, WARNING, etc.).
+					This means the handler is willing to process log records at DEBUG level and above (DEBUG,
+					INFO, WARNING, etc.).
 
 					2. Root Logger Level (logging.basicConfig(level=logging.INFO, ...)):
-					This sets the minimum level for the root logger. Only log records at INFO level and above will be passed from the logger to the handler.
+					This sets the minimum level for the root logger. Only log records at INFO level and above
+					will be passed from the logger to the handler.
 				"""
                 logging.basicConfig(level=logging.INFO)
                 Traceloop.init(
@@ -329,9 +307,7 @@ class Pulse:
                     api_endpoint=otel_collector_endpoint,
                     resource_attributes=self.config,
                     should_enrich_metrics=False,
-                    exporter=OTLPSpanExporter(
-                        endpoint=otel_collector_endpoint, insecure=True
-                    ),
+                    exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
                     telemetry_enabled=False,
                     instruments={
                         Instruments.ANTHROPIC,
@@ -345,9 +321,7 @@ class Pulse:
                 # Set the global instance
             _pulse_instance = self
             end_time = time.time()
-            logger.info(
-                f"Pulse initialized successfully in {end_time - start_time:.2f} seconds."
-            )
+            logger.info(f"Pulse initialized successfully in {end_time - start_time:.2f} seconds.")
         except Exception as e:
             logger.error(f"Error initializing Pulse: {e}", exc_info=True)
 
@@ -356,7 +330,8 @@ class Pulse:
         """
         Enables or disables content tracing by attaching a context variable.
         Sets a key called override_enable_content_tracing in the OpenTelemetry context to True right before
-        making the LLM call you want to trace with prompts. This will create a new context that will instruct instrumentations to log prompts and completions as span attributes.
+        making the LLM call you want to trace with prompts. This will create a new context that will instruct
+        instrumentations to log prompts and completions as span attributes.
 
         Args:
                 enabled (bool): A flag to enable or disable content tracing. Defaults to True.
@@ -373,18 +348,14 @@ class Pulse:
         Initializes the log provider and sets up the logging configuration.
         """
         # Create the log provider and processor
-        log_provider = LoggerProvider(
-            resource=Resource.create({**self.config, SERVICE_NAME: service_name()})
-        )
+        log_provider = LoggerProvider(resource=Resource.create({**self.config, SERVICE_NAME: service_name()}))
         log_exporter = FileLogExporter(LOCAL_LOGS_FILE)
         log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
         # create json log exporter for live logs
         jsonl_file_exporter = get_jsonl_file_exporter()
         if jsonl_file_exporter is not None:
-            log_provider.add_log_record_processor(
-                SimpleLogRecordProcessor(jsonl_file_exporter)
-            )
+            log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
 
         # Set the log provider
         _logs.set_logger_provider(log_provider)
@@ -424,8 +395,8 @@ def traced_function(func):
 
 def pulse_tool(_func=None, *, name=None, enable_content_tracing=True):
     """
-    Decorator to register a function as a tool. Can be used as @pulse_tool, @pulse_tool("name"), or @pulse_tool(name="name").
-    If no argument is passed, uses the function name as the tool name.
+    Decorator to register a function as a tool. Can be used as @pulse_tool, @pulse_tool("name"), or
+    @pulse_tool(name="name"). If no argument is passed, uses the function name as the tool name.
     Args:
             _func: The function to be decorated.
             name: Optional name for the tool. If not provided, the function name is used.
@@ -558,9 +529,7 @@ def observe(name):
             if ctx:
                 logger.debug(f"Starting span with context: {ctx}")
                 # Start span with context
-                with tracer.start_as_current_span(
-                    name, context=ctx, kind=SpanKind.SERVER
-                ):
+                with tracer.start_as_current_span(name, context=ctx, kind=SpanKind.SERVER):
                     return decorated_func(*args, **kwargs)
             else:
                 logger.debug("No context found, starting span without context.")
@@ -617,12 +586,8 @@ def setup_json_file_logger():
     jsonl_file_exporter = get_jsonl_file_exporter()
     if jsonl_file_exporter is not None:
         logger_provider = LoggerProvider()
-        logger_provider.add_log_record_processor(
-            SimpleLogRecordProcessor(jsonl_file_exporter)
-        )
-        log_handler = LoggingHandler(
-            level=logging.INFO, logger_provider=logger_provider
-        )
+        logger_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
+        log_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
         logging.root.addHandler(log_handler)
         return logger_provider, log_handler
     return None, None
@@ -655,7 +620,8 @@ class JSONLFileLogExporter(LogExporter):
     def __init__(self, file_path):
         self.file_path = file_path
         try:
-            self.f = open(self.file_path, "a", encoding="utf-8")
+            # Long-lived append handle for the exporter's lifetime; closed in shutdown().
+            self.f = open(self.file_path, "a", encoding="utf-8")  # noqa: SIM115
         except Exception as e:
             logger.error(f"Failed to open file {self.file_path}: {e}")
             self.f = None

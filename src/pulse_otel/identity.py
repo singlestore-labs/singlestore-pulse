@@ -9,13 +9,13 @@ from opentelemetry.propagators.textmap import default_setter
 
 from pulse_otel.consts import (
     APP_NAME_PLACEHOLDER,
-    BAGGAGE_ORG,
-    BAGGAGE_PROJECT,
     BAGGAGE_NEXUS_ID,
     BAGGAGE_NEXUS_TYPE,
     BAGGAGE_NOVA_ID,
-    BAGGAGE_NOVA_TYPE,
     BAGGAGE_NOVA_NAME,
+    BAGGAGE_NOVA_TYPE,
+    BAGGAGE_ORG,
+    BAGGAGE_PROJECT,
 )
 
 
