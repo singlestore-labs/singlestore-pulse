@@ -1,9 +1,13 @@
 .venv/
 __pycache__/
 *.pyc
-.python-version
 build/
+dist/
 *.egg-info/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
 pulse_traces.json
 pulse_logs.txt
 **/.env

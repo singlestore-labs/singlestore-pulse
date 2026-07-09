@@ -1,0 +1,51 @@
+[project]
+name = "singlestore_pulse"
+dynamic = ["version"]
+description = "SingleStore Python SDK for OpenTelemetry integration"
+readme = "README.md"
+authors = [{ name = "Ashutosh Anshu", email = "aanshu@singlestore.com" }]
+requires-python = ">=3.11"
+keywords = ["singlestore", "opentelemetry", "tracing", "observability", "pulse"]
+classifiers = ["Programming Language :: Python :: 3.11"]
+dependencies = [
+    "opentelemetry-api==1.38.0",
+    "opentelemetry-sdk==1.38.0",
+    "opentelemetry-exporter-otlp==1.38.0",
+    "opentelemetry-exporter-otlp-proto-grpc==1.38.0",
+    "traceloop-sdk==0.52.6",
+    # Keep OpenLLMetry instrumentors aligned with traceloop-sdk; <0.53 preserves
+    # pre-GenAI-semconv span names (main/model/tools).
+    "opentelemetry-instrumentation-langchain==0.52.6",
+    "opentelemetry-instrumentation-openai==0.52.6",
+    "opentelemetry-instrumentation-anthropic==0.52.6",
+    "opentelemetry-instrumentation-bedrock==0.52.6",
+    "opentelemetry-instrumentation-ollama==0.52.6",
+    "fastapi==0.115.12",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/singlestore-labs/singlestore-pulse"
+"Bug Tracker" = "https://github.com/singlestore-labs/singlestore-pulse/issues"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = { attr = "pulse_otel.version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pulse_otel = ["py.typed"]
+
+[dependency-groups]
+dev = ["ruff>=0.12.10"]
+test = ["pytest>=8.0.0", "pytest-mock>=3.0.0", "pytest-cov>=6.0.0"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = ["-ra", "-q", "--strict-markers", "--strict-config"]
+testpaths = ["tests"]
+pythonpath = ["src"]

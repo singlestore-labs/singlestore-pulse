@@ -1,30 +1,35 @@
-## Building the Package
+# singlestore-pulse
 
-Make sure `setuptools` and `wheel` are installed:
+SingleStore Python SDK for OpenTelemetry integration. Distributed as `singlestore_pulse`,
+imported as `pulse_otel`.
+
+## Installation
+
 ```bash
-pip install --upgrade setuptools wheel
+pip install git+https://github.com/singlestore-labs/singlestore-pulse.git@v0.4.14
 ```
 
-Navigate to the root directory of your project and run the following command to build your package:
+## Development
+
+Tooling is driven by [uv](https://docs.astral.sh/uv/) and `make`.
+
 ```bash
-python3 setup.py sdist bdist_wheel
+make install-dev   # uv sync --all-groups
+make check         # format-check + lint-check + test
+make test          # run the test suite
+make lint-fix      # apply ruff lint fixes
+make format-fix    # apply ruff formatting
+make build         # build sdist + wheel into dist/
 ```
 
-## Testing Locally
+## Releasing
 
-After building, you can install the package locally using:
+Releases are cut from `master` and published as GitHub releases (git tags `vX.Y.Z`, no PyPI):
+
 ```bash
-pip install dist/singlestore_pulse-0.1-py3-none-any.whl
+make release                 # interactive: prompts for patch/minor/major
+make release VERSION=0.4.15  # non-interactive
 ```
 
-## Running unit tests locally
-Make sure you have `pytest` installed:
-```bash
-pip install pytest
-```
-
-To run the unit tests, use the following command in parent directory of the singlestore_pulse project:
-```bash
-pytest -v --tb=short
-```
-This will execute all the tests in the `tests` directory and provide a verbose output with a short traceback for any failures.
+This bumps `src/pulse_otel/version.py`, opens a release PR, and on merge the
+`python-release.yml` workflow tags `vX.Y.Z` and creates the GitHub release.

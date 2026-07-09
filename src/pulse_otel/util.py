@@ -5,32 +5,31 @@ import re
 import socket
 import time
 from urllib.parse import urlparse
-from typing import Optional
 
 from opentelemetry.baggage import set_baggage
 from opentelemetry.context import attach
+from traceloop.sdk import Traceloop
 
 from pulse_otel.consts import (
-    BAGGAGE_SESSION,
-    OTEL_COLLECTOR_ENDPOINT,
-    DEFAULT_ENV_VARIABLES,
-    ENV_VARIABLES_MAPPING,
-    HEADER_INCOMING_SESSION_ID,
-    SESSION_ID,
-    PULSE_INTERNAL_COLLECTOR_ENDPOINT,
-    ORGANIZATION,
-    PROJECT,
-    WORKLOAD_TYPE,
     APP_NAME,
     APP_NAME_PLACEHOLDER,
+    BAGGAGE_SESSION,
+    DEFAULT_ENV_VARIABLES,
+    DEPLOYMENT_ENV,
+    ENV_VARIABLES_MAPPING,
+    HEADER_INCOMING_SESSION_ID,
     ORG_ID,
+    ORGANIZATION,
+    OTEL_COLLECTOR_ENDPOINT,
+    PROJECT,
     PROJECT_ID,
+    PULSE_INTERNAL_COLLECTOR_ENDPOINT,
+    SERVICE_VERSION,
+    SESSION_ID,
     SINGLESTORE_ORG_ID,
     SINGLESTORE_PROJECT_ID,
-    SERVICE_VERSION,
-    DEPLOYMENT_ENV,
+    WORKLOAD_TYPE,
 )
-from traceloop.sdk import Traceloop
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +61,7 @@ def get_environ_vars():
 
     """
 
-    env_variables = {
-        key: os.getenv(key, default) for key, default in DEFAULT_ENV_VARIABLES.items()
-    }
+    env_variables = {key: os.getenv(key, default) for key, default in DEFAULT_ENV_VARIABLES.items()}
 
     formatted_env_variables = format_env_variables(env_variables)
     return formatted_env_variables
@@ -92,21 +89,15 @@ def format_env_variables(env_variables):
     # no env var carries the environment, so derive it from the workload type.
     if ORGANIZATION in converted_env_variables:
         converted_env_variables[ORG_ID] = converted_env_variables[ORGANIZATION]
-        converted_env_variables[SINGLESTORE_ORG_ID] = converted_env_variables[
-            ORGANIZATION
-        ]
+        converted_env_variables[SINGLESTORE_ORG_ID] = converted_env_variables[ORGANIZATION]
     if PROJECT in converted_env_variables:
         converted_env_variables[PROJECT_ID] = converted_env_variables[PROJECT]
-        converted_env_variables[SINGLESTORE_PROJECT_ID] = converted_env_variables[
-            PROJECT
-        ]
+        converted_env_variables[SINGLESTORE_PROJECT_ID] = converted_env_variables[PROJECT]
     app_name = converted_env_variables.get(APP_NAME)
     if app_name and app_name != APP_NAME_PLACEHOLDER:
         converted_env_variables[SERVICE_VERSION] = app_name
     if converted_env_variables.get(WORKLOAD_TYPE):
-        converted_env_variables[DEPLOYMENT_ENV] = converted_env_variables[
-            WORKLOAD_TYPE
-        ].lower()
+        converted_env_variables[DEPLOYMENT_ENV] = converted_env_variables[WORKLOAD_TYPE].lower()
 
     return converted_env_variables
 
@@ -120,7 +111,7 @@ def service_name() -> str:
 
 
 def form_otel_collector_endpoint(
-    project_id: str = None,
+    project_id: str | None = None,
 ) -> str:
     """
     Forms the OpenTelemetry collector endpoint URL.
@@ -133,9 +124,7 @@ def form_otel_collector_endpoint(
     """
 
     if project_id is None or project_id == "":
-        raise ValueError(
-            "[Pulse] SINGLESTOREDB_PROJECT is required but not found int env variables."
-        )
+        raise ValueError("[Pulse] SINGLESTOREDB_PROJECT is required but not found int env variables.")
 
     otel_collector_endpoint_str = str(OTEL_COLLECTOR_ENDPOINT)
     return otel_collector_endpoint_str.replace("{PROJECTID_PLACEHOLDER}", project_id)
@@ -149,9 +138,7 @@ def extract_session_id(**kwargs) -> str:
 
     session_id = None
     try:
-        logger.debug(
-            f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}"
-        )
+        logger.debug(f"[pulse_agent] DEBUG - Extracting session ID from kwargs: {kwargs}")
         session_id = kwargs.get("session_id")
         if session_id:
             return session_id
@@ -175,7 +162,7 @@ def extract_session_id(**kwargs) -> str:
     return session_id
 
 
-def extract_session_id_from_body(**kwargs) -> Optional[str]:
+def extract_session_id_from_body(**kwargs) -> str | None:
     """
     Extracts the 'session_id' from the request body stored in kwargs['body'].
     Supports both dict-like objects and Pydantic models.
@@ -192,7 +179,7 @@ def extract_session_id_from_body(**kwargs) -> Optional[str]:
                 logger.debug(
                     f"[pulse_agent] DEBUG - Found session_id in request body attributes: {request_body.session_id}"
                 )
-                return getattr(request_body, "session_id")
+                return request_body.session_id
     except Exception as e:
         logger.error(f"[pulse_agent] Error extracting session_id from body: {e}")
 
@@ -217,11 +204,15 @@ def _is_endpoint_reachable(
     Returns:
         bool: True if the endpoint is reachable, False otherwise.
     Warnings:
-        - If the `endpoint_url` is empty, a warning is printed, and the function assumes the endpoint is unreachable.
-        - If the URL is malformed or cannot be parsed, a warning is printed, and the function assumes the endpoint is unreachable.
-        - If the connection attempt fails due to socket errors, timeouts, or connection refusals, a warning is printed with details.
+        - If the `endpoint_url` is empty, a warning is printed, and the function assumes the endpoint is
+          unreachable.
+        - If the URL is malformed or cannot be parsed, a warning is printed, and the function assumes the
+          endpoint is unreachable.
+        - If the connection attempt fails due to socket errors, timeouts, or connection refusals, a warning
+          is printed with details.
     Exceptions:
-        - Handles `socket.error`, `ConnectionRefusedError`, `socket.timeout`, and `ValueError` gracefully by printing warnings.
+        - Handles `socket.error`, `ConnectionRefusedError`, `socket.timeout`, and `ValueError` gracefully by
+          printing warnings.
         - Catches any other unexpected exceptions and prints a warning with the error details.
     """
     if not endpoint_url:
@@ -239,40 +230,33 @@ def _is_endpoint_reachable(
 
             with socket.create_connection((host, port), timeout=timeout):
                 return True
-        except (socket.error, ConnectionRefusedError, socket.timeout) as e:
+        except (TimeoutError, OSError, ConnectionRefusedError) as e:
             # Define host/port for error message, using defaults if parsing failed before assignment.
-            error_host_str = (
-                host
-                if "host" in locals() and host is not None
-                else "unknown (parsing error)"
-            )
+            error_host_str = host if "host" in locals() and host is not None else "unknown (parsing error)"
             # Port is expected to be 4317 if format is correct.
             error_port_str = (
-                str(port)
-                if "port" in locals() and port is not None
-                else "unknown (parsing error or not 4317)"
+                str(port) if "port" in locals() and port is not None else "unknown (parsing error or not 4317)"
             )
 
             if attempt < retries - 1:
                 logger.warning(
-                    f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable: {e}. Retrying in {backoff} seconds..."
+                    f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) "
+                    f"is not reachable: {e}. Retrying in {backoff} seconds..."
                 )
                 time.sleep(backoff)
             else:
                 logger.warning(
-                    f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) is not reachable after {retries} retries: {e}"
+                    f"Warning: OTel endpoint {endpoint_url} (resolved to {error_host_str}:{error_port_str}) "
+                    f"is not reachable after {retries} retries: {e}"
                 )
                 return False
-        except (
-            ValueError
-        ) as e:  # Handle potential errors from urlparse if URL is malformed
-            logger.warning(
-                f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable."
-            )
+        except ValueError as e:  # Handle potential errors from urlparse if URL is malformed
+            logger.warning(f"Warning: Malformed OTel endpoint URL '{endpoint_url}': {e}. Assuming unreachable.")
             return False
         except Exception as e:  # Catch any other unexpected errors during the check
             logger.warning(
-                f"Warning: An unexpected error occurred while checking OTel endpoint reachability for {endpoint_url}: {e}"
+                "Warning: An unexpected error occurred while checking OTel endpoint reachability for "
+                f"{endpoint_url}: {e}"
             )
             return False
     return False
@@ -287,7 +271,8 @@ def add_session_id_to_span_attributes(**kwargs):
     2. `extract_session_id_from_body`: Extracts the session ID from the body of the provided arguments.
 
     If no session ID is found, a debug log message is generated indicating that no session ID was found.
-    The extracted session ID is then added to the association properties using the `Traceloop.set_association_properties` method.
+    The extracted session ID is then added to the association properties using the
+    `Traceloop.set_association_properties` method.
 
     Args:
         **kwargs: Arbitrary keyword arguments that may contain the session ID.
@@ -321,14 +306,10 @@ def set_global_content_tracing(enable_trace_content: bool = True):
     """
 
     if enable_trace_content:
-        logger.info(
-            "[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes."
-        )
+        logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
         os.environ["TRACELOOP_TRACE_CONTENT"] = "true"
     else:
-        logger.info(
-            "[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes."
-        )
+        logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
         os.environ["TRACELOOP_TRACE_CONTENT"] = "false"
 
 
@@ -370,13 +351,12 @@ def get_internal_collector_endpoint() -> str:
     nova_cell_shortname = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
     if not nova_cell_shortname:
         raise ValueError(
-            "[Pulse] SINGLESTOREDB_CELL_SHORT_NAME is required for Internal Observability but not found in env variables."
+            "[Pulse] SINGLESTOREDB_CELL_SHORT_NAME is required for Internal Observability but not found in "
+            "env variables."
         )
 
     pulse_internal_collector_endpoint_str = str(PULSE_INTERNAL_COLLECTOR_ENDPOINT)
-    return pulse_internal_collector_endpoint_str.replace(
-        "{NOVA_CELL_PLACEHOLDER}", nova_cell_shortname
-    )
+    return pulse_internal_collector_endpoint_str.replace("{NOVA_CELL_PLACEHOLDER}", nova_cell_shortname)
 
 
 def set_span_attribute_size_limit(size_limit: int):
@@ -399,22 +379,18 @@ def _perform_otel_collector_reachability_check():
     try:
         kernel_type = os.getenv("SINGLESTOREDB_KERNEL_TYPE", "")
         if kernel_type.lower() != "analyst":
-            logger.debug(
-                "[PULSE] Not an analyst kernel. Skipping import-time reachability check."
-            )
+            logger.debug("[PULSE] Not an analyst kernel. Skipping import-time reachability check.")
             return
 
         cell_short_name = os.getenv("SINGLESTOREDB_CELL_SHORT_NAME", "")
         if not cell_short_name:
-            logger.error(
-                "[PULSE] Cell short name is not set. Skipping import-time reachability check."
-            )
+            logger.error("[PULSE] Cell short name is not set. Skipping import-time reachability check.")
             return
 
-        otel_collector_endpoint = f"http://otel-collector-pulse-internal-{cell_short_name}.observability.svc.cluster.local:4317"
-        logger.info(
-            f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}"
+        otel_collector_endpoint = (
+            f"http://otel-collector-pulse-internal-{cell_short_name}.observability.svc.cluster.local:4317"
         )
+        logger.info(f"[PULSE] Checking reachability for endpoint at import time: {otel_collector_endpoint}")
 
         is_reachable = _is_endpoint_reachable(otel_collector_endpoint)
         _otel_collector_reachability_cache[otel_collector_endpoint] = is_reachable
@@ -424,8 +400,6 @@ def _perform_otel_collector_reachability_check():
                 f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is not reachable."
             )
         else:
-            logger.info(
-                f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable."
-            )
+            logger.info(f"[PULSE] Import-time check: OTel collector endpoint {otel_collector_endpoint} is reachable.")
     except Exception as e:
         logger.error(f"[PULSE] Error during import-time reachability check: {e}")
