@@ -26,13 +26,37 @@ services:
       - otel-network
     user: "0:0"  # Run as root to ensure write permissions
 
-  # jaeger:
-  #   image: jaegertracing/all-in-one:latest
-  #   ports:
-  #     - "16686:16686"  # Jaeger UI
-  #     - "9411:9411"    # Zipkin compatible endpoint
-  #   networks:
-  #     - otel-network
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+      - ./tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200"
+    networks:
+      - otel-network
+    user: "0:0"
+
+  prometheus:
+    image: prom/prometheus:latest
+    command: ["--config.file=/etc/prometheus.yaml"]
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus.yaml
+      - prometheus-data:/prometheus
+    ports:
+      - "9093:9093"
+    networks:
+      - otel-network
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3003:3003"
+    networks:
+      - otel-network
 
 networks:
   otel-network:
@@ -40,4 +64,6 @@ networks:
 
 volumes:
   otel-collector-logs:
-    # Using a named volume with proper permissions
+  tempo-data: {}
+  prometheus-data: {}
+  grafana-data: {}
