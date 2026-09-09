@@ -225,6 +225,9 @@ class Pulse:
 
                     set_global_content_tracing(False)
                     otel_collector_endpoint = get_internal_collector_endpoint()
+                elif otel_collector_endpoint is not None:
+                    # Caller supplied the destination, so the caller states the policy.
+                    set_global_content_tracing(enable_trace_content)
 
                 if otel_collector_endpoint is None:
                     try:
@@ -233,8 +236,6 @@ class Pulse:
                         raise ValueError(f"Project ID '{PROJECT}' not found in configuration.") from err
                     otel_collector_endpoint = form_otel_collector_endpoint(project_id)
                     set_global_content_tracing(True)
-                else:
-                    set_global_content_tracing(enable_trace_content)
 
                 logger.info(f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}")
 
