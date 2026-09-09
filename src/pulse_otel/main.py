@@ -233,6 +233,8 @@ class Pulse:
                         raise ValueError(f"Project ID '{PROJECT}' not found in configuration.") from err
                     otel_collector_endpoint = form_otel_collector_endpoint(project_id)
                     set_global_content_tracing(True)
+                else:
+                    set_global_content_tracing(enable_trace_content)
 
                 logger.info(f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}")
 
@@ -275,6 +277,7 @@ class Pulse:
                             f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. "
                             "Please enable Pulse Tracing or contact the support team for more assistance."
                         )
+                        set_global_content_tracing(False)
                         return
 
                 log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
@@ -325,6 +328,7 @@ class Pulse:
             end_time = time.time()
             logger.info(f"Pulse initialized successfully in {end_time - start_time:.2f} seconds.")
         except Exception as e:
+            set_global_content_tracing(False)
             logger.error(f"Error initializing Pulse: {e}", exc_info=True)
 
     @staticmethod

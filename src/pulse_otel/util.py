@@ -325,9 +325,13 @@ def is_content_allowed() -> bool:
     Reports whether this process may put content (SQL statements, URL query strings,
     request payloads) on spans and log records.
 
-    Content is allowed only when Pulse resolved a project-scoped collector, which in
-    practice means an internal org. Everything else exports to the shared cell
-    collector, which stays content-less.
+    Reports the decision Pulse recorded through set_global_content_tracing during
+    initialization. On the collector path that means content is allowed only for a
+    project-scoped collector, so an org exporting to the shared cell collector stays
+    content-less. Local file and Traceloop-cloud setups follow their own branch.
+
+    False until a decision is recorded, and reset to False if initialization does not
+    complete, so an unconfigured process never reports content as allowed.
 
     Returns:
         bool: True when content may be recorded.

@@ -1,3 +1,4 @@
+import importlib
 import os
 import tempfile
 from pathlib import Path
@@ -181,9 +182,14 @@ class TestContentTracingIntegration:
 
 
 class TestIsContentAllowed:
-    def test_defaults_to_disallowed(self, mocker):
-        mocker.patch.object(util, "_content_allowed", False)
-        assert util.is_content_allowed() is False
+    def test_module_default_is_disallowed(self):
+        # Reload rather than patch: patching the value under test would assert
+        # the fixture, not the default a regression would change.
+        reloaded = importlib.reload(util)
+        try:
+            assert reloaded.is_content_allowed() is False
+        finally:
+            reloaded.set_global_content_tracing(False)
 
     @pytest.mark.parametrize("enabled", [True, False])
     def test_tracks_the_global_content_tracing_decision(self, enabled, monkeypatch):
