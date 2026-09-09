@@ -5,6 +5,7 @@ from pulse_otel.consts import (
     BAGGAGE_ORG,
     BAGGAGE_PROJECT,
 )
+from pulse_otel.dbapi import instrument_db_connection
 from pulse_otel.identity import seed_identity_baggage
 from pulse_otel.main import (
     CustomFileSpanExporter,
@@ -29,6 +30,7 @@ __all__ = [
     "FileLogExporter",
     "Pulse",
     "__version__",
+    "instrument_db_connection",
     "is_content_allowed",
     "is_s2_owned_app",
     "observe",
