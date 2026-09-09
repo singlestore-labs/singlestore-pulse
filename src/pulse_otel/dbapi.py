@@ -6,21 +6,26 @@ receive every statement a query runs against customer data. These proxies reuse
 the upstream classes and drop that one attribute.
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, Generic
 
 from opentelemetry.instrumentation.dbapi import (
+    ConnectionT,
+    CursorT,
     CursorTracer,
     DatabaseApiIntegration,
     TracedConnectionProxy,
     TracedCursorProxy,
 )
 from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.trace import Span, TracerProvider
 
 from pulse_otel.util import is_content_allowed
 
 
-class _StatementRedactingCursorTracer(CursorTracer):
-    def _populate_span(self, span: Any, cursor: Any, *args: tuple[Any, ...]) -> None:
+class _StatementRedactingCursorTracer(CursorTracer[CursorT], Generic[CursorT]):
+    def _populate_span(self, span: Span, cursor: CursorT, *args: tuple[Any, ...]) -> None:
         if is_content_allowed():
             super()._populate_span(span, cursor, *args)
             return
@@ -34,14 +39,14 @@ class _StatementRedactingCursorTracer(CursorTracer):
             span.set_attribute(key, value)
 
 
-class _StatementRedactingCursorProxy(TracedCursorProxy):
-    def __init__(self, cursor: Any, db_api_integration: DatabaseApiIntegration):
+class _StatementRedactingCursorProxy(TracedCursorProxy[CursorT], Generic[CursorT]):
+    def __init__(self, cursor: CursorT, db_api_integration: DatabaseApiIntegration) -> None:
         super().__init__(cursor, db_api_integration)
-        self._self_cursor_tracer = _StatementRedactingCursorTracer(db_api_integration)
+        self._self_cursor_tracer = _StatementRedactingCursorTracer[CursorT](db_api_integration)
 
 
-class _StatementRedactingConnectionProxy(TracedConnectionProxy):
-    def cursor(self, *args: Any, **kwargs: Any):
+class _StatementRedactingConnectionProxy(TracedConnectionProxy[ConnectionT], Generic[ConnectionT]):
+    def cursor(self, *args: Any, **kwargs: Any) -> _StatementRedactingCursorProxy[Any]:
         return _StatementRedactingCursorProxy(
             self.__wrapped__.cursor(*args, **kwargs),
             self._self_db_api_integration,
@@ -49,11 +54,12 @@ class _StatementRedactingConnectionProxy(TracedConnectionProxy):
 
 
 def instrument_db_connection(
-    connection: Any,
+    connection: ConnectionT,
     database_system: str = "mysql",
     name: str = "pulse_otel",
     version: str = "",
-) -> Any:
+    tracer_provider: TracerProvider | None = None,
+) -> TracedConnectionProxy[ConnectionT]:
     """
     Instruments a DB-API connection so each query emits a client span.
 
@@ -67,10 +73,11 @@ def instrument_db_connection(
         database_system: Identifier for the database system, e.g. "mysql".
         name: Instrumentation module name.
         version: Instrumentation module version.
+        tracer_provider: Provider to record spans on. Defaults to the global one.
 
     Returns:
         The instrumented connection.
     """
-    integration = DatabaseApiIntegration(name, database_system, version=version)
+    integration = DatabaseApiIntegration(name, database_system, version=version, tracer_provider=tracer_provider)
     integration.get_connection_attributes(connection)
     return _StatementRedactingConnectionProxy(connection, integration)
