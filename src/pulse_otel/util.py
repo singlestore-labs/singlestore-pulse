@@ -297,13 +297,20 @@ def add_session_id_to_span_attributes(**kwargs):
     attach(set_baggage(BAGGAGE_SESSION, session_id))
 
 
+_content_allowed = False
+
+
 def set_global_content_tracing(enable_trace_content: bool = True):
     """
-    Sets the global content tracing flag for Traceloop.
+    Sets the global content tracing flag for Traceloop, and records the same
+    decision for callers that do not go through Traceloop.
 
     Args:
         enable_trace_content (bool): If True, enables content tracing; otherwise, disables it.
     """
+
+    global _content_allowed
+    _content_allowed = enable_trace_content
 
     if enable_trace_content:
         logger.info("[PULSE] Content tracing enabled. Prompts and completions will be logged as span attributes.")
@@ -311,6 +318,21 @@ def set_global_content_tracing(enable_trace_content: bool = True):
     else:
         logger.info("[PULSE] Content tracing disabled. Prompts and completions will not be logged as span attributes.")
         os.environ["TRACELOOP_TRACE_CONTENT"] = "false"
+
+
+def is_content_allowed() -> bool:
+    """
+    Reports whether this process may put content (SQL statements, URL query strings,
+    request payloads) on spans and log records.
+
+    Content is allowed only when Pulse resolved a project-scoped collector, which in
+    practice means an internal org. Everything else exports to the shared cell
+    collector, which stays content-less.
+
+    Returns:
+        bool: True when content may be recorded.
+    """
+    return _content_allowed
 
 
 def is_s2_owned_app():

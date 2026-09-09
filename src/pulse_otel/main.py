@@ -209,6 +209,7 @@ class Pulse:
                         "[PULSE] Force content tracing is enabled. Traces will be sent to project specific "
                         "OpenTelemetry collector and Content Tracing will be enabled."
                     )
+                    set_global_content_tracing(True)
                     set_span_attribute_size_limit(span_attribute_size_limit)
                 elif telemetry_enabled or is_s2_owned_app():
                     if telemetry_enabled:
@@ -231,6 +232,7 @@ class Pulse:
                     except KeyError as err:
                         raise ValueError(f"Project ID '{PROJECT}' not found in configuration.") from err
                     otel_collector_endpoint = form_otel_collector_endpoint(project_id)
+                    set_global_content_tracing(True)
 
                 logger.info(f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}")
 

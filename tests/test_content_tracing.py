@@ -1,3 +1,4 @@
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, call
@@ -5,7 +6,7 @@ from unittest.mock import MagicMock, call
 import pytest
 from opentelemetry.context import get_value
 
-from pulse_otel import Pulse, observe, pulse_agent, pulse_tool
+from pulse_otel import Pulse, observe, pulse_agent, pulse_tool, util
 
 # The key Pulse.enable_content_tracing writes into the OTel context. Traceloop reads
 # either this context value or the TRACELOOP_TRACE_CONTENT env var to decide whether
@@ -177,3 +178,17 @@ class TestContentTracingIntegration:
 
         trace_files = list(Path(tmp_path).glob("*traces*.json"))
         assert trace_files, "no trace files were created"
+
+
+class TestIsContentAllowed:
+    def test_defaults_to_disallowed(self, mocker):
+        mocker.patch.object(util, "_content_allowed", False)
+        assert util.is_content_allowed() is False
+
+    @pytest.mark.parametrize("enabled", [True, False])
+    def test_tracks_the_global_content_tracing_decision(self, enabled, monkeypatch):
+        monkeypatch.setenv("TRACELOOP_TRACE_CONTENT", "unset")
+        util.set_global_content_tracing(enabled)
+
+        assert util.is_content_allowed() is enabled
+        assert os.environ["TRACELOOP_TRACE_CONTENT"] == str(enabled).lower()
