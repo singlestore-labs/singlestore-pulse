@@ -1239,6 +1239,21 @@ wheels = [
 ]
 
 [[package]]
+name = "opentelemetry-instrumentation-dbapi"
+version = "0.59b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-instrumentation" },
+    { name = "opentelemetry-semantic-conventions" },
+    { name = "wrapt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/60/aa/36a09652c98c65b42408d40f222fba031a3a281f1b6682e1b141b20b508d/opentelemetry_instrumentation_dbapi-0.59b0.tar.gz", hash = "sha256:c50112ae1cdb7f55bddcf57eca96aaa0f2dd78732be2b00953183439a4740493", size = 16308, upload-time = "2025-10-16T08:39:43.192Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/9b/1739b5b7926cbae342880d7a56d59a847313e6568a96ba7d4873ce0c0996/opentelemetry_instrumentation_dbapi-0.59b0-py3-none-any.whl", hash = "sha256:672d59caa06754b42d4e722644d9fcd00a1f9f862e9ea5cef6d4da454515ac67", size = 13970, upload-time = "2025-10-16T08:38:48.342Z" },
+]
+
+[[package]]
 name = "opentelemetry-instrumentation-google-generativeai"
 version = "0.53.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2166,6 +2181,7 @@ dependencies = [
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-instrumentation-anthropic" },
     { name = "opentelemetry-instrumentation-bedrock" },
+    { name = "opentelemetry-instrumentation-dbapi" },
     { name = "opentelemetry-instrumentation-langchain" },
     { name = "opentelemetry-instrumentation-ollama" },
     { name = "opentelemetry-instrumentation-openai" },
@@ -2191,6 +2207,7 @@ requires-dist = [
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = "==1.38.0" },
     { name = "opentelemetry-instrumentation-anthropic", specifier = "==0.52.6" },
     { name = "opentelemetry-instrumentation-bedrock", specifier = "==0.52.6" },
+    { name = "opentelemetry-instrumentation-dbapi", specifier = "==0.59b0" },
     { name = "opentelemetry-instrumentation-langchain", specifier = "==0.52.6" },
     { name = "opentelemetry-instrumentation-ollama", specifier = "==0.52.6" },
     { name = "opentelemetry-instrumentation-openai", specifier = "==0.52.6" },

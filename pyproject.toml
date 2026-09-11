@@ -20,6 +20,8 @@ dependencies = [
     "opentelemetry-instrumentation-anthropic==0.52.6",
     "opentelemetry-instrumentation-bedrock==0.52.6",
     "opentelemetry-instrumentation-ollama==0.52.6",
+    # Versioned with the OTel SDK, not with the OpenLLMetry instrumentors above.
+    "opentelemetry-instrumentation-dbapi==0.59b0",
     "fastapi==0.115.12",
 ]
 
