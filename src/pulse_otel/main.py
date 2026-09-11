@@ -209,6 +209,7 @@ class Pulse:
                         "[PULSE] Force content tracing is enabled. Traces will be sent to project specific "
                         "OpenTelemetry collector and Content Tracing will be enabled."
                     )
+                    set_global_content_tracing(True)
                     set_span_attribute_size_limit(span_attribute_size_limit)
                 elif telemetry_enabled or is_s2_owned_app():
                     if telemetry_enabled:
@@ -224,6 +225,9 @@ class Pulse:
 
                     set_global_content_tracing(False)
                     otel_collector_endpoint = get_internal_collector_endpoint()
+                elif otel_collector_endpoint is not None:
+                    # Caller supplied the destination, so the caller states the policy.
+                    set_global_content_tracing(enable_trace_content)
 
                 if otel_collector_endpoint is None:
                     try:
@@ -231,6 +235,7 @@ class Pulse:
                     except KeyError as err:
                         raise ValueError(f"Project ID '{PROJECT}' not found in configuration.") from err
                     otel_collector_endpoint = form_otel_collector_endpoint(project_id)
+                    set_global_content_tracing(True)
 
                 logger.info(f"[PULSE] Using OpenTelemetry collector endpoint: {otel_collector_endpoint}")
 
@@ -273,6 +278,7 @@ class Pulse:
                             f"Warning: OTel collector endpoint {otel_collector_endpoint} is not reachable. "
                             "Please enable Pulse Tracing or contact the support team for more assistance."
                         )
+                        set_global_content_tracing(False)
                         return
 
                 log_exporter = OTLPLogExporter(endpoint=otel_collector_endpoint)
@@ -323,6 +329,7 @@ class Pulse:
             end_time = time.time()
             logger.info(f"Pulse initialized successfully in {end_time - start_time:.2f} seconds.")
         except Exception as e:
+            set_global_content_tracing(False)
             logger.error(f"Error initializing Pulse: {e}", exc_info=True)
 
     @staticmethod
