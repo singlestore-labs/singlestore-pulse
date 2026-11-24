@@ -28,9 +28,10 @@ from opentelemetry.sdk._logs.export import (
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter, SpanExportResult
-from opentelemetry.trace import SpanKind
+from opentelemetry.trace import ProxyTracerProvider, SpanKind
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from traceloop.sdk import Traceloop
+from traceloop.sdk.config import is_tracing_enabled
 from traceloop.sdk.decorators import agent, tool
 from traceloop.sdk.instruments import Instruments
 
@@ -60,10 +61,15 @@ from pulse_otel.util import (
 _pulse_instance = None
 
 
-def _register_baggage_span_processor():
-    """Attach the baggage→span processor to the tracer provider Traceloop set as
-    global, so every span (not just library-tagged ones) gets identity from baggage."""
+def _install_tracer_provider(resource):
+    # Traceloop.init reuses an installed SDK provider. Installing it with the processor
+    # first stamps the spans that start while Traceloop loads its instrumentations.
+    if not is_tracing_enabled():
+        return
     provider = trace.get_tracer_provider()
+    if isinstance(provider, ProxyTracerProvider):
+        provider = TracerProvider(resource=resource)
+        trace.set_tracer_provider(provider)
     add = getattr(provider, "add_span_processor", None)
     if add is None:
         logger.warning("[PULSE] Tracer provider has no add_span_processor; skipping BaggageSpanProcessor.")
@@ -144,12 +150,14 @@ class Pulse:
             # Attach process identity to the active context so in-process spans
             # get it via the BaggageSpanProcessor, not only outbound-injected ones.
             attach(seed_identity_baggage())
-            # Reuse the attrs Traceloop puts on spans for the log providers below; without a
-            # Resource, OTel stamps every log record with service.name="unknown_service".
-            log_resource = Resource.create({**self.config, SERVICE_NAME: service_name()})
+            # One Resource for the tracer and log providers; without it, OTel stamps every
+            # log record with service.name="unknown_service".
+            pulse_resource = Resource.create({**self.config, SERVICE_NAME: service_name()})
             if write_to_traceloop and api_key:
                 log_exporter = self.init_log_provider()
                 set_global_content_tracing(False)
+
+                _install_tracer_provider(pulse_resource)
 
                 Traceloop.init(
                     app_name=service_name(),
@@ -159,12 +167,12 @@ class Pulse:
                     logging_exporter=log_exporter,
                     telemetry_enabled=False,
                 )
-                _register_baggage_span_processor()
 
             elif write_to_file and not without_traceloop:
                 set_global_content_tracing(enable_trace_content and not telemetry_enabled)
 
                 log_exporter = self.init_log_provider()
+                _install_tracer_provider(pulse_resource)
                 Traceloop.init(
                     app_name=service_name(),
                     disable_batch=True,
@@ -172,12 +180,11 @@ class Pulse:
                     resource_attributes=self.config,
                     logging_exporter=log_exporter,
                 )
-                _register_baggage_span_processor()
             elif only_live_logs:
                 # create json log exporter for live logs
                 jsonl_file_exporter = get_jsonl_file_exporter()
                 if jsonl_file_exporter is not None:
-                    log_provider = LoggerProvider(resource=log_resource)
+                    log_provider = LoggerProvider(resource=pulse_resource)
                     _logs.set_logger_provider(log_provider)
                     log_provider.add_log_record_processor(SimpleLogRecordProcessor(jsonl_file_exporter))
                     logging.root.addHandler(LoggingHandler())  # add filehandler to root logger
@@ -247,7 +254,7 @@ class Pulse:
 					OTLP collector. The exporter is wrapped in a BatchLogRecordProcessor, which batches log
 					records for efficient export, and this processor is registered with the logger provider.
 				"""
-                log_provider = LoggerProvider(resource=log_resource)
+                log_provider = LoggerProvider(resource=pulse_resource)
                 _logs.set_logger_provider(log_provider)
 
                 # create json log exporter for live logs
@@ -307,6 +314,7 @@ class Pulse:
 					will be passed from the logger to the handler.
 				"""
                 logging.basicConfig(level=logging.INFO)
+                _install_tracer_provider(pulse_resource)
                 Traceloop.init(
                     app_name=service_name(),
                     disable_batch=True,
@@ -323,7 +331,6 @@ class Pulse:
                         Instruments.LANGCHAIN,
                     },
                 )
-                _register_baggage_span_processor()
                 # Set the global instance
             _pulse_instance = self
             end_time = time.time()

@@ -1,9 +1,6 @@
-"""Baggage→span processor: stamps singlestore.* identity onto every span from
-the W3C baggage on its parent context, so identity lands on all spans (not only
-those a library explicitly tags). Producers seed the baggage; this projects it.
-A missing org/project/nexus/nova member falls back to the pod env identity, so
-spans keep it even when nothing seeded baggage on their thread or task. Request
-dims (domain/session/turn/api key) have no env source and need an entrypoint."""
+"""Stamps singlestore.* identity onto every span from its parent context's W3C baggage.
+A missing org/project/nexus/nova member falls back to the pod env identity; request dims
+(domain/session/turn/api key) come from baggage only."""
 
 from opentelemetry.baggage import get_baggage
 from opentelemetry.sdk.trace import SpanProcessor

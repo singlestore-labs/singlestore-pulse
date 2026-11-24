@@ -2,6 +2,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
+import pytest
 from opentelemetry.baggage import set_baggage
 from opentelemetry.context import Context
 from opentelemetry.sdk.trace import TracerProvider
@@ -12,7 +13,10 @@ from pulse_otel import (
     BAGGAGE_API_KEY,
     BAGGAGE_DOMAIN,
     BAGGAGE_NEXUS_ID,
+    BAGGAGE_NEXUS_TYPE,
     BAGGAGE_NOVA_ID,
+    BAGGAGE_NOVA_NAME,
+    BAGGAGE_NOVA_TYPE,
     BAGGAGE_ORG,
     BAGGAGE_PROJECT,
     BAGGAGE_SESSION,
@@ -44,12 +48,7 @@ ENV_IDENTITY_ATTRS = {
     "singlestore.nova.app.name": "sqlbot",
 }
 
-REQUEST_ATTRS = (
-    "singlestore.domain.id",
-    "session.id",
-    "singlestore.api_key.id",
-    "turn.id",
-)
+REQUEST_ATTRS = ("singlestore.domain.id", "session.id", "singlestore.api_key.id", "turn.id")
 
 
 def _new_tracer():
@@ -74,26 +73,44 @@ def _baggage(**members):
     return ctx
 
 
+@pytest.mark.parametrize(
+    ("baggage_key", "attr_keys"),
+    [
+        (BAGGAGE_API_KEY, ["singlestore.api_key.id"]),
+        (BAGGAGE_TURN, ["turn.id"]),
+        (BAGGAGE_DOMAIN, ["singlestore.domain.id"]),
+        (BAGGAGE_SESSION, ["session.id", "gen_ai.conversation.id", "traceloop.association.properties.session.id"]),
+    ],
+)
 @patch.dict(os.environ, {}, clear=True)
-def test_request_baggage_is_stamped_on_span():
+def test_request_baggage_member_is_stamped(baggage_key, attr_keys):
     tracer, exporter = _new_tracer()
-    ctx = _baggage(
-        **{
-            BAGGAGE_API_KEY: "key-1",
-            BAGGAGE_TURN: "turn-1",
-            BAGGAGE_DOMAIN: "dom-1",
-            BAGGAGE_SESSION: "sess-1",
-        }
-    )
 
-    attrs = _span_attrs(tracer, exporter, ctx)
+    attrs = _span_attrs(tracer, exporter, _baggage(**{baggage_key: "from-baggage"}))
 
-    assert attrs["singlestore.api_key.id"] == "key-1"
-    assert attrs["turn.id"] == "turn-1"
-    assert attrs["singlestore.domain.id"] == "dom-1"
-    assert attrs["session.id"] == "sess-1"
-    assert attrs["gen_ai.conversation.id"] == "sess-1"
-    assert attrs["traceloop.association.properties.session.id"] == "sess-1"
+    assert {key: attrs.get(key) for key in attr_keys} == dict.fromkeys(attr_keys, "from-baggage")
+
+
+@pytest.mark.parametrize(
+    ("baggage_key", "attr_key"),
+    [
+        (BAGGAGE_ORG, "singlestore.org.id"),
+        (BAGGAGE_PROJECT, "singlestore.project.id"),
+        (BAGGAGE_NEXUS_ID, "singlestore.nexus.app.id"),
+        (BAGGAGE_NEXUS_TYPE, "singlestore.nexus.app.type"),
+        (BAGGAGE_NOVA_ID, "singlestore.nova.app.id"),
+        (BAGGAGE_NOVA_TYPE, "singlestore.nova.app.type"),
+        (BAGGAGE_NOVA_NAME, "singlestore.nova.app.name"),
+    ],
+)
+@patch.dict(os.environ, POD_ENV, clear=True)
+def test_baggage_member_wins_over_env_and_env_fills_the_rest(baggage_key, attr_key):
+    tracer, exporter = _new_tracer()
+
+    attrs = _span_attrs(tracer, exporter, _baggage(**{baggage_key: "from-baggage"}))
+
+    assert attrs[attr_key] == "from-baggage"
+    assert {k: v for k, v in ENV_IDENTITY_ATTRS.items() if attrs[k] != "from-baggage"}.items() <= attrs.items()
 
 
 @patch.dict(os.environ, POD_ENV, clear=True)
@@ -106,36 +123,11 @@ def test_env_identity_fills_span_when_baggage_is_empty():
     assert not set(REQUEST_ATTRS) & attrs.keys()
 
 
-@patch.dict(os.environ, POD_ENV, clear=True)
-def test_baggage_member_wins_over_env():
-    tracer, exporter = _new_tracer()
-    ctx = _baggage(
-        **{
-            BAGGAGE_ORG: "bag-org",
-            BAGGAGE_PROJECT: "bag-proj",
-            BAGGAGE_NEXUS_ID: "bag-nexus",
-            BAGGAGE_NOVA_ID: "bag-nova",
-        }
-    )
-
-    attrs = _span_attrs(tracer, exporter, ctx)
-
-    assert attrs["singlestore.org.id"] == "bag-org"
-    assert attrs["singlestore.project.id"] == "bag-proj"
-    assert attrs["singlestore.nexus.app.id"] == "bag-nexus"
-    assert attrs["singlestore.nova.app.id"] == "bag-nova"
-    # Members missing from baggage still come from the env.
-    assert attrs["singlestore.nexus.app.type"] == "AuraAnalyst"
-    assert attrs["singlestore.nova.app.name"] == "sqlbot"
-
-
 @patch.dict(os.environ, {}, clear=True)
 def test_no_baggage_and_no_env_stamps_nothing():
     tracer, exporter = _new_tracer()
 
-    attrs = _span_attrs(tracer, exporter, Context())
-
-    assert attrs == {}
+    assert _span_attrs(tracer, exporter, Context()) == {}
 
 
 @patch.dict(os.environ, POD_ENV, clear=True)
@@ -143,6 +135,6 @@ def test_processor_made_in_one_thread_stamps_span_started_in_another():
     with ThreadPoolExecutor(max_workers=1) as pool:
         tracer, exporter = pool.submit(_new_tracer).result()
     with ThreadPoolExecutor(max_workers=1) as pool:
-        attrs = pool.submit(_span_attrs, tracer, exporter, None).result()
+        attrs = pool.submit(_span_attrs, tracer, exporter, Context()).result()
 
     assert ENV_IDENTITY_ATTRS.items() <= attrs.items()
