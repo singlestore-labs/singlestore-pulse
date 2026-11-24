@@ -16,6 +16,8 @@ DOMAIN_ID = "singlestore.domain.id"
 SESSION_ID = "session.id"
 CONVERSATION_ID = "gen_ai.conversation.id"
 SESSION_ID_ALIAS = "traceloop.association.properties.session.id"
+API_KEY_ID = "singlestore.api_key.id"
+TURN_ID = "turn.id"
 ORGANIZATION = "singlestore.organization"
 PROJECT = "singlestore.project"
 HOSTNAME = "singlestore.hostname"
@@ -38,11 +40,13 @@ SERVICE_VERSION = "service.version"
 DEPLOYMENT_ENV = "deployment.environment.name"
 
 # aura-otel cross-service W3C baggage keys — MUST match github.com/singlestore/aura-otel/otelctx
-# (BaggageOrg/Project/NovaID/NovaType/NovaName); the Go services resolve identity from these.
+# (the Baggage* constants); the Go services resolve identity from these.
 BAGGAGE_ORG = "org"
 BAGGAGE_PROJECT = "project"
 BAGGAGE_DOMAIN = "domain"
 BAGGAGE_SESSION = "session"
+BAGGAGE_TURN = "turn"
+BAGGAGE_API_KEY = "api_key.id"
 BAGGAGE_NEXUS_ID = "nexus.app.id"
 BAGGAGE_NEXUS_TYPE = "nexus.app.type"
 BAGGAGE_NOVA_ID = "nova.id"
