@@ -30,7 +30,7 @@ POD_ENV = {
     "SINGLESTOREDB_NEXUS_APP_ID": "env-nexus",
     "SINGLESTOREDB_NEXUS_APP_TYPE": "AuraAnalyst",
     "SINGLESTOREDB_APP_ID": "env-nova",
-    "SINGLESTOREDB_APP_TYPE": "AGENT",
+    "SINGLESTOREDB_WORKLOAD_TYPE": "NotebookCodeService",
     "SINGLESTOREDB_APP_NAME": "sqlbot",
 }
 
@@ -44,7 +44,7 @@ ENV_IDENTITY_ATTRS = {
     "singlestore.nexus.app.id": "env-nexus",
     "singlestore.nexus.app.type": "AuraAnalyst",
     "singlestore.nova.app.id": "env-nova",
-    "singlestore.nova.app.type": "AGENT",
+    "singlestore.nova.app.type": "NotebookCodeService",
     "singlestore.nova.app.name": "sqlbot",
 }
 
@@ -121,6 +121,21 @@ def test_env_identity_fills_span_when_baggage_is_empty():
 
     assert ENV_IDENTITY_ATTRS.items() <= attrs.items()
     assert not set(REQUEST_ATTRS) & attrs.keys()
+
+
+@pytest.mark.parametrize(
+    ("env", "nova_type"),
+    [
+        ({"SINGLESTOREDB_WORKLOAD_TYPE": "NotebookCodeService"}, "NotebookCodeService"),
+        ({"SINGLESTOREDB_APP_TYPE": "AGENT"}, "AGENT"),
+        ({"SINGLESTOREDB_WORKLOAD_TYPE": "ScheduledNotebook", "SINGLESTOREDB_APP_TYPE": "AGENT"}, "ScheduledNotebook"),
+    ],
+)
+def test_env_nova_type_prefers_workload_type(env, nova_type):
+    with patch.dict(os.environ, env, clear=True):
+        tracer, exporter = _new_tracer()
+
+    assert _span_attrs(tracer, exporter, Context())["singlestore.nova.app.type"] == nova_type
 
 
 @patch.dict(os.environ, {}, clear=True)
