@@ -41,7 +41,7 @@ from pulse_otel.consts import (
     LOCAL_TRACES_FILE,
     PROJECT,
 )
-from pulse_otel.identity import _IdentityBaggagePropagator, seed_identity_baggage
+from pulse_otel.identity import _IdentityBaggagePropagator
 from pulse_otel.spanprocessor import BaggageSpanProcessor
 from pulse_otel.util import (
     _is_endpoint_reachable,
@@ -147,9 +147,6 @@ class Pulse:
             # before any reachability/branch early-return below, so outbound calls always
             # carry traceparent + identity baggage even when export is degraded.
             set_global_textmap(CompositePropagator([TraceContextTextMapPropagator(), _IdentityBaggagePropagator()]))
-            # Attach process identity to the active context so in-process spans
-            # get it via the BaggageSpanProcessor, not only outbound-injected ones.
-            attach(seed_identity_baggage())
             # One Resource for the tracer and log providers; without it, OTel stamps every
             # log record with service.name="unknown_service".
             pulse_resource = Resource.create({**self.config, SERVICE_NAME: service_name()})

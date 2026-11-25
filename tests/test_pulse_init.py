@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 import pytest
 from opentelemetry import trace
-from opentelemetry.context import Context, attach, detach
+from opentelemetry.baggage import get_all
+from opentelemetry.context import Context, attach, detach, get_current
 from opentelemetry.util._once import Once
 from traceloop.sdk.tracing import tracing as traceloop_tracing
 
@@ -64,3 +65,10 @@ def test_traceloop_tracing_disabled_leaves_no_global_provider(fresh_tracing):
         Pulse(write_to_file=True)
 
     assert isinstance(trace.get_tracer_provider(), trace.ProxyTracerProvider)
+
+
+def test_pulse_leaves_the_callers_context_without_identity_baggage(fresh_tracing):
+    with patch.dict(os.environ, POD_ENV):
+        Pulse(write_to_file=True)
+
+    assert get_all(get_current()) == {}
