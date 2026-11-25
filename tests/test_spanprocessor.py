@@ -114,6 +114,16 @@ def test_baggage_member_wins_over_env_and_env_fills_the_rest(baggage_key, attr_k
 
 
 @patch.dict(os.environ, POD_ENV, clear=True)
+def test_empty_baggage_member_falls_back_to_env():
+    tracer, exporter = _new_tracer()
+
+    attrs = _span_attrs(tracer, exporter, _baggage(**{BAGGAGE_ORG: "", BAGGAGE_PROJECT: "bag-proj"}))
+
+    assert attrs["singlestore.org.id"] == "env-org"
+    assert attrs["singlestore.project.id"] == "bag-proj"
+
+
+@patch.dict(os.environ, POD_ENV, clear=True)
 def test_env_identity_fills_span_when_baggage_is_empty():
     tracer, exporter = _new_tracer()
 
