@@ -39,6 +39,7 @@ from pulse_otel.consts import (
     LIVE_LOGS_FILE_PATH,
     LOCAL_LOGS_FILE,
     LOCAL_TRACES_FILE,
+    OTLP_SPAN_EXPORT_TIMEOUT_SECONDS,
     PROJECT,
 )
 from pulse_otel.identity import _IdentityBaggagePropagator
@@ -59,6 +60,14 @@ from pulse_otel.util import (
 )
 
 _pulse_instance = None
+
+
+def _otlp_span_exporter(endpoint):
+    # The standard env vars still override the short default timeout.
+    env_timeout = os.getenv("OTEL_EXPORTER_OTLP_TRACES_TIMEOUT") or os.getenv("OTEL_EXPORTER_OTLP_TIMEOUT")
+    return OTLPSpanExporter(
+        endpoint=endpoint, insecure=True, timeout=None if env_timeout else OTLP_SPAN_EXPORT_TIMEOUT_SECONDS
+    )
 
 
 def _install_tracer_provider(resource):
@@ -192,7 +201,7 @@ class Pulse:
                     }
                 )
                 provider = TracerProvider(resource=resource)
-                exporter = OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True)
+                exporter = _otlp_span_exporter(otel_collector_endpoint)
 
                 if write_to_file:
                     logger.info(f"Writing traces to file: {LOCAL_TRACES_FILE}")
@@ -312,13 +321,14 @@ class Pulse:
 				"""
                 logging.basicConfig(level=logging.INFO)
                 _install_tracer_provider(pulse_resource)
+                # Batch export keeps span end off the request path: a synchronous export blocks for the
+                # exporter timeout while the collector is down. Traceloop forces sync export in notebooks.
                 Traceloop.init(
                     app_name=service_name(),
-                    disable_batch=True,
                     api_endpoint=otel_collector_endpoint,
                     resource_attributes=self.config,
                     should_enrich_metrics=False,
-                    exporter=OTLPSpanExporter(endpoint=otel_collector_endpoint, insecure=True),
+                    processor=BatchSpanProcessor(_otlp_span_exporter(otel_collector_endpoint)),
                     telemetry_enabled=False,
                     instruments={
                         Instruments.ANTHROPIC,

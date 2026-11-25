@@ -1,12 +1,19 @@
 import json
+import logging
 import os
+import statistics
+import time
+from concurrent import futures
 from unittest.mock import patch
 
+import grpc
 import pytest
 from opentelemetry import trace
 from opentelemetry.baggage import get_all
 from opentelemetry.context import Context, attach, detach, get_current
+from opentelemetry.proto.collector.trace.v1 import trace_service_pb2, trace_service_pb2_grpc
 from opentelemetry.util._once import Once
+from traceloop.sdk import Traceloop
 from traceloop.sdk.tracing import tracing as traceloop_tracing
 
 from pulse_otel import Pulse
@@ -36,6 +43,8 @@ def fresh_tracing(monkeypatch, tmp_path):
     monkeypatch.setattr(trace, "_TRACER_PROVIDER_SET_ONCE", Once())
     monkeypatch.setattr(trace, "_TRACER_PROVIDER", None)
     monkeypatch.chdir(tmp_path)
+    # Real instrumentation would patch installed libraries for the rest of the session.
+    monkeypatch.setattr(traceloop_tracing, "init_instrumentations", lambda *args, **kwargs: None)
     previous_wrapper = _drop_traceloop_wrapper()
     token = attach(Context())
     yield tmp_path
@@ -72,3 +81,83 @@ def test_pulse_leaves_the_callers_context_without_identity_baggage(fresh_tracing
         Pulse(write_to_file=True)
 
     assert get_all(get_current()) == {}
+
+
+UNREACHABLE_COLLECTORS = {
+    "refuses_connections": "http://127.0.0.1:1",
+    "drops_packets": "http://10.255.255.1:4317",
+}
+
+
+class _Collector(trace_service_pb2_grpc.TraceServiceServicer):
+    def __init__(self):
+        self.spans = {}
+
+    def Export(self, request, context):
+        for resource_spans in request.resource_spans:
+            for scope_spans in resource_spans.scope_spans:
+                for span in scope_spans.spans:
+                    self.spans[span.name] = {a.key: a.value.string_value for a in span.attributes}
+        return trace_service_pb2.ExportTraceServiceResponse()
+
+
+@pytest.fixture
+def collector():
+    servicer = _Collector()
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    trace_service_pb2_grpc.add_TraceServiceServicer_to_server(servicer, server)
+    port = server.add_insecure_port("127.0.0.1:0")
+    server.start()
+    yield f"http://127.0.0.1:{port}", servicer
+    server.stop(0)
+
+
+@pytest.fixture
+def otlp_tracing(fresh_tracing):
+    # The OTLP path adds a root log handler and a tracer provider with export threads.
+    handlers = list(logging.root.handlers)
+    yield
+    trace.get_tracer_provider().shutdown()
+    for handler in set(logging.root.handlers) - set(handlers):
+        logging.root.removeHandler(handler)
+        provider = getattr(handler, "_logger_provider", None)
+        if provider is not None:
+            provider.shutdown()
+
+
+@pytest.mark.parametrize("endpoint", UNREACHABLE_COLLECTORS.values(), ids=UNREACHABLE_COLLECTORS.keys())
+def test_span_end_does_not_wait_for_an_unreachable_collector(otlp_tracing, endpoint):
+    Pulse(otel_collector_endpoint=endpoint, skip_reachability_check=True)
+    tracer = trace.get_tracer("request")
+
+    durations = []
+    for _ in range(5):
+        span = tracer.start_span("request-span")
+        started = time.monotonic()
+        span.end()
+        durations.append(time.monotonic() - started)
+
+    assert statistics.median(durations) < 0.01
+
+
+def test_spans_reach_a_running_collector(otlp_tracing, collector):
+    endpoint, servicer = collector
+    Pulse(otel_collector_endpoint=endpoint, skip_reachability_check=True)
+
+    with trace.get_tracer("request").start_as_current_span("reaches-collector"):
+        pass
+    trace.get_tracer_provider().force_flush()
+
+    assert "reaches-collector" in servicer.spans
+
+
+def test_traceloop_session_alias_still_reaches_the_collector(otlp_tracing, collector):
+    endpoint, servicer = collector
+    Pulse(otel_collector_endpoint=endpoint, skip_reachability_check=True)
+
+    Traceloop.set_association_properties({"session.id": "session-1"})
+    with trace.get_tracer("request").start_as_current_span("with-session"):
+        pass
+    trace.get_tracer_provider().force_flush()
+
+    assert servicer.spans["with-session"]["traceloop.association.properties.session.id"] == "session-1"

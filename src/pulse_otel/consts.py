@@ -85,6 +85,8 @@ ENV_VARIABLES_MAPPING = {
     "HOSTNAME": HOSTNAME,
 }
 
+OTLP_SPAN_EXPORT_TIMEOUT_SECONDS = 3
+
 # Local traces and logs output files
 LOCAL_TRACES_FILE = "pulse_traces.json"
 LOCAL_LOGS_FILE = "pulse_logs.txt"
