@@ -113,8 +113,10 @@ def collector():
 
 
 @pytest.fixture
-def otlp_tracing(fresh_tracing):
+def otlp_tracing(fresh_tracing, monkeypatch):
     # The OTLP path adds a root log handler and a tracer provider with export threads.
+    # The log exporter keeps the 10 s OTel default timeout, which would slow each teardown.
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_LOGS_TIMEOUT", "1")
     handlers = list(logging.root.handlers)
     yield
     trace.get_tracer_provider().shutdown()
@@ -138,6 +140,29 @@ def test_span_end_does_not_wait_for_an_unreachable_collector(otlp_tracing, endpo
         durations.append(time.monotonic() - started)
 
     assert statistics.median(durations) < 0.01
+
+
+@pytest.mark.parametrize(
+    ("env", "max_seconds"),
+    [
+        ({}, 5),
+        ({"OTEL_EXPORTER_OTLP_TRACES_TIMEOUT": "1"}, 2),
+        ({"OTEL_EXPORTER_OTLP_TIMEOUT": "1"}, 2),
+    ],
+    ids=["default", "traces_env", "generic_env"],
+)
+def test_export_to_an_unreachable_collector_gives_up_within_the_timeout(otlp_tracing, monkeypatch, env, max_seconds):
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_TRACES_TIMEOUT", raising=False)
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_TIMEOUT", raising=False)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    Pulse(otel_collector_endpoint=UNREACHABLE_COLLECTORS["drops_packets"], skip_reachability_check=True)
+
+    trace.get_tracer("request").start_span("request-span").end()
+    started = time.monotonic()
+    trace.get_tracer_provider().force_flush()
+
+    assert time.monotonic() - started < max_seconds
 
 
 def test_spans_reach_a_running_collector(otlp_tracing, collector):
