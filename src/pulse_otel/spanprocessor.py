@@ -1,16 +1,16 @@
-"""Baggage→span processor: stamps singlestore.* identity onto every span from
-the W3C baggage on its parent context, so identity lands on all spans (not only
-those a library explicitly tags). Producers seed the baggage; this projects it.
-A dimension is stamped only when present, so session/domain appear only when a
-chat/AuraAnalyst entrypoint seeded them."""
+"""Stamps singlestore.* identity onto every span from its parent context's W3C baggage.
+A missing org/project/nexus/nova member falls back to the pod env identity; request dims
+(domain/session/turn/api key) come from baggage only."""
 
 from opentelemetry.baggage import get_baggage
 from opentelemetry.sdk.trace import SpanProcessor
 
 from pulse_otel.consts import (
+    API_KEY_ID,
     APP_ID,
     APP_NAME,
     APP_TYPE,
+    BAGGAGE_API_KEY,
     BAGGAGE_DOMAIN,
     BAGGAGE_NEXUS_ID,
     BAGGAGE_NEXUS_TYPE,
@@ -20,6 +20,7 @@ from pulse_otel.consts import (
     BAGGAGE_ORG,
     BAGGAGE_PROJECT,
     BAGGAGE_SESSION,
+    BAGGAGE_TURN,
     CONVERSATION_ID,
     DOMAIN_ID,
     NEXUS_APP_ID,
@@ -32,13 +33,18 @@ from pulse_otel.consts import (
     SESSION_ID_ALIAS,
     SINGLESTORE_ORG_ID,
     SINGLESTORE_PROJECT_ID,
+    TURN_ID,
 )
+from pulse_otel.identity import _process_identity_baggage
 
 
 class BaggageSpanProcessor(SpanProcessor):
+    def __init__(self):
+        self._env_identity = _process_identity_baggage()
+
     def on_start(self, span, parent_context=None):
         def stamp(baggage_key, *attr_keys):
-            value = get_baggage(baggage_key, parent_context)
+            value = get_baggage(baggage_key, parent_context) or self._env_identity.get(baggage_key)
             if value:
                 for attr_key in attr_keys:
                     span.set_attribute(attr_key, value)
@@ -47,6 +53,8 @@ class BaggageSpanProcessor(SpanProcessor):
         stamp(BAGGAGE_PROJECT, PROJECT, PROJECT_ID, SINGLESTORE_PROJECT_ID)
         stamp(BAGGAGE_DOMAIN, DOMAIN_ID)
         stamp(BAGGAGE_SESSION, SESSION_ID, CONVERSATION_ID, SESSION_ID_ALIAS)
+        stamp(BAGGAGE_TURN, TURN_ID)
+        stamp(BAGGAGE_API_KEY, API_KEY_ID)
         stamp(BAGGAGE_NEXUS_ID, NEXUS_APP_ID)
         stamp(BAGGAGE_NEXUS_TYPE, NEXUS_APP_TYPE)
         stamp(BAGGAGE_NOVA_ID, APP_ID)
